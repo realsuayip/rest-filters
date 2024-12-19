@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import itertools
 import operator
 from collections import defaultdict
 from collections.abc import Sequence
@@ -21,37 +22,113 @@ from rest_filters.filters import Entry, Filter
 from rest_filters.utils import merge_errors
 
 _MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
+notset = object()
 
 
 class Options:
     def __init__(
         self,
         *,
-        fields: Sequence[str] | None = None,
-        known_parameters: Sequence[str] | None = None,
-        constraints: Sequence[Constraint] | None = None,
-        combinators: dict[str, Any] | None = None,
+        fields: Sequence[str],
+        known_parameters: Sequence[str],
+        constraints: Sequence[Constraint],
+        combinators: dict[str, Any],
     ) -> None:
-        self.fields = fields  # todo not functional
-        self.known_parameters = known_parameters or []
-        self.constraints = constraints or []
-        self.combinators = combinators or {}
+        if known_parameters is notset:
+            known_parameters = []
+        if constraints is notset:
+            constraints = []
+        if combinators is notset:
+            combinators = {}
+
+        self.fields = fields
+        self.known_parameters = known_parameters
+        self.constraints = constraints
+        self.combinators = combinators
 
 
 class FilterSet(Generic[_MT_co]):
+    options: Options
+    compiled_fields: dict[str, Filter]
+
     def __init__(
         self, request: Request, queryset: QuerySet[_MT_co], view: APIView
     ) -> None:
         self.request = request
         self.queryset = queryset
         self.view = view
-        self.options = self.get_options()
 
-    def get_options(self) -> Options:
-        if meta := getattr(self, "Meta", None):
-            args = ("fields", "known_parameters", "constraints", "combinators")
-            return Options(**{arg: getattr(meta, arg, None) for arg in args})
-        return Options()
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        meta_fields = (
+            "fields",
+            "constraints",
+            "combinators",
+            "known_parameters",
+        )
+        if meta := getattr(cls, "Meta", None):
+            opts = {field: getattr(meta, field, notset) for field in meta_fields}
+            options = Options(**opts)
+        else:
+            opts = {field: notset for field in meta_fields}
+            options = Options(**opts)
+        cls.options = options
+        cls.compiled_fields = cls._compile_fields()
+
+    @classmethod
+    def _visit(
+        cls, fields: Sequence[str], f: Filter
+    ) -> tuple[list[str], Filter | None]:
+        param = f.get_param_name()
+        keep = param in fields
+        if not f.children:
+            if keep:
+                return [param], f
+            return [param], None
+        params, children = zip(
+            *[cls._visit(fields, child) for child in f.children],
+            strict=True,
+        )
+        params, children = (
+            list(itertools.chain.from_iterable(params)),
+            [child for child in children if child is not None],
+        )
+        if children:
+            f.children = children
+            if not keep:
+                f.namespace = True
+        elif keep:
+            f.children = []
+        else:
+            return params, None
+        params.append(param)
+        return params, f
+
+    @classmethod
+    def _compile_fields(cls) -> dict[str, Filter]:
+        fields = {
+            name: field
+            for name, field in vars(cls).items()
+            if isinstance(field, Filter)
+        }
+        if cls.options.fields is notset:
+            return fields
+        ret, available = {}, []
+        for name, field in fields.items():
+            params, f = cls._visit(cls.options.fields, field)
+            available.extend(params)
+            if f is not None:
+                ret[name] = f
+        unknown = [field for field in cls.options.fields if field not in available]
+        if unknown:
+            raise ValueError(
+                "Following fields are not valid: %(fields)s,"
+                " available fields: %(available)s"
+                % {
+                    "fields": ", ".join((repr(item) for item in unknown)),
+                    "available": ", ".join(repr(item) for item in available),
+                }
+            )
+        return ret
 
     def get_groups(self) -> dict[str, dict[str, Entry]]:
         params = self.request.query_params
@@ -105,11 +182,8 @@ class FilterSet(Generic[_MT_co]):
             queryset = self.filter_group(queryset, name, entries)
         return queryset
 
-    @classmethod
-    def get_fields(cls) -> dict[str, Filter]:
-        return {
-            name: attr for name, attr in vars(cls).items() if isinstance(attr, Filter)
-        }
+    def get_fields(self) -> dict[str, Filter]:
+        return self.compiled_fields
 
     def get_default(self, param: str, default: Any) -> Any:
         return default
