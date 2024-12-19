@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rest_filters"]
+
+[project]
+name = "rest-filters"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=3.2",
+    "djangorestframework>=3.14.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/realsuayip/rest-filters"
+"Bug Tracker" = "https://github.com/realsuayip/rest-filters/issues"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+    "RUF", # Ruff-specific
+    "C4", # flake8-comprehensions
+    "C90", # mccabe
+    "I", # isort
+]
+fixable = ["I"]
+ignore = ["B904"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+section-order = [
+    "future",
+    "standard-library",
+    "django",
+    "rest_framework",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+django = ["django"]
+rest_framework = ["rest_framework"]
+
+[tool.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+strict = true
