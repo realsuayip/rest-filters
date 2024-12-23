@@ -7,39 +7,38 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence
 from difflib import get_close_matches
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic
 
-from django.db import models
 from django.db.models import QuerySet
 from django.utils.translation import gettext
 
 from rest_framework import serializers
 from rest_framework.fields import empty
-from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from rest_filters.constraints import Constraint
 from rest_filters.filters import Entry, Filter
-from rest_filters.utils import merge_errors
+from rest_filters.utils import AnyField, NotSet, _MT_co, merge_errors, notset
 
-_MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
-notset = object()
+if TYPE_CHECKING:
+    from rest_framework.fields import _Empty
 
 
 class Options:
     def __init__(
         self,
         *,
-        fields: Sequence[str],
-        known_parameters: Sequence[str],
-        constraints: Sequence[Constraint],
-        combinators: dict[str, Any],
+        fields: Sequence[str] | NotSet,
+        known_parameters: Sequence[str] | NotSet,
+        constraints: Sequence[Constraint] | NotSet,
+        combinators: dict[str, Any] | NotSet,
     ) -> None:
-        if known_parameters is notset:
+        if isinstance(known_parameters, NotSet):
             known_parameters = []
-        if constraints is notset:
+        if isinstance(constraints, NotSet):
             constraints = []
-        if combinators is notset:
+        if isinstance(combinators, NotSet):
             combinators = {}
 
         self.fields = fields
@@ -56,7 +55,7 @@ class FilterSet(Generic[_MT_co]):
         self,
         request: Request,
         queryset: QuerySet[_MT_co],
-        view: GenericAPIView,
+        view: APIView,
     ) -> None:
         self.request = request
         self.queryset = queryset
@@ -91,13 +90,11 @@ class FilterSet(Generic[_MT_co]):
             if keep:
                 return [param], f
             return [param], None
-        params, children = zip(
-            *[cls._visit(fields, child) for child in f.children],
-            strict=True,
-        )
+        visits = [cls._visit(fields, child) for child in f.children]
+        p, c = zip(*visits, strict=True)
         params, children = (
-            list(itertools.chain.from_iterable(params)),
-            [child for child in children if child is not None],
+            list(itertools.chain.from_iterable(p)),
+            [child for child in c if child is not None],
         )
         if children:
             f.children = children
@@ -117,7 +114,7 @@ class FilterSet(Generic[_MT_co]):
             for name, field in vars(cls).items()
             if isinstance(field, Filter)
         }
-        if cls.options.fields is notset:
+        if isinstance(cls.options.fields, NotSet):
             return fields
         ret, available = {}, []
         for name, field in fields.items():
@@ -140,6 +137,7 @@ class FilterSet(Generic[_MT_co]):
     def get_groups(self) -> dict[str, dict[str, Entry]]:
         params = self.request.query_params
         fields = self.get_fields()
+        groupdict: dict[str, dict[str, Entry]]
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
         known = [*self.options.known_parameters]
         for _, field in fields.items():
@@ -196,25 +194,25 @@ class FilterSet(Generic[_MT_co]):
         return default
 
     def get_serializer(
-        self, param: str, serializer: serializers.Field | None
-    ) -> serializers.Field | None:
+        self, param: str, serializer: AnyField | None
+    ) -> AnyField | None:
         return serializer
 
     def get_serializer_context(self, param: str) -> dict[str, Any]:
-        context = self.view.get_serializer_context()
+        context: dict[str, Any] = self.view.get_serializer_context()  # type: ignore[attr-defined]
         context["filterset"] = self
         return context
 
     def run_validation(
-        self, value: str | empty, serializer: serializers.Field, param: str
-    ):
+        self, value: str | _Empty, serializer: AnyField, param: str
+    ) -> Any:
         return serializer.run_validation(value)
 
     def get_constraints(self) -> Sequence[Constraint]:
         return self.constraints
 
     def handle_constraints(self, valuedict: dict[str, Any]) -> dict[str, Any]:
-        errors = {}
+        errors: dict[str, Any] = {}
         constraints = self.get_constraints()
         for constraint in constraints:
             constraint.filterset = self

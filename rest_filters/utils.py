@@ -1,6 +1,19 @@
-from typing import Any
+from typing import Any, TypeVar
 
+from django.db import models
 from django.db.models import Q
+
+from rest_framework.fields import Field
+
+AnyField = Field[Any, Any, Any, Any]
+_MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
+
+
+class NotSet:
+    pass
+
+
+notset = NotSet()
 
 
 def fill_q_template(template: Q, *, value: Any) -> Q:

@@ -32,7 +32,7 @@ class Constraint:
         self.fields = fields
         self.message = message
         self.method = method
-        self.filterset: FilterSet | None = None
+        self.filterset: FilterSet[Any] | None = None
 
     def get_message(self, **kwargs: Any) -> dict[str, Any]:
         message = self.message or gettext(
@@ -46,7 +46,7 @@ class Constraint:
     def check(self, **kwargs: Any) -> bool:
         assert self.method, "Missing method for constraint"
         assert self.filterset, "Missing filterset for constraint"
-        return getattr(self.filterset, self.method)(**kwargs)
+        return getattr(self.filterset, self.method)(**kwargs)  # type: ignore[no-any-return]
 
 
 class MutuallyExclusive(Constraint):

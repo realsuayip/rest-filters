@@ -10,9 +10,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
-from rest_filters.utils import fill_q_template
+from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
+    from rest_framework.fields import _Empty
+
     from rest_filters.filtersets import FilterSet
 
 
@@ -42,7 +44,7 @@ class Entry:
 class Filter:
     def __init__(
         self,
-        f: serializers.Field = None,
+        f: AnyField | None = None,
         /,
         *,
         field: str | None = None,
@@ -79,7 +81,7 @@ class Filter:
         self.method = method
         self._param = param
         self._serializer = f
-        self._filterset: FilterSet | None = None
+        self._filterset: FilterSet[Any] | None = None
 
         self.namespace = namespace
         self.parent: Filter | None = None
@@ -98,7 +100,7 @@ class Filter:
             self.get_serializer(),
         )
 
-    def __set_name__(self, owner: FilterSet, name: str) -> None:
+    def __set_name__(self, owner: FilterSet[Any], name: str) -> None:
         self.name = name
 
     def bind(self, parent: Filter) -> None:
@@ -114,7 +116,7 @@ class Filter:
             return self.parent.get_group()
         return "chain"
 
-    def get_field_name(self):
+    def get_field_name(self) -> str:
         if self.parent and self._field is None:
             return self.parent.get_field_name()
         return self._field or self.name
@@ -126,47 +128,52 @@ class Filter:
             return f"{namespace}.{name}"
         return name
 
-    def get_query_value(self, query_dict: QueryDict) -> str | empty:
+    def get_query_value(self, query_dict: QueryDict) -> str | _Empty:
         param = self.get_param_name()
         return query_dict.get(param, empty)
 
-    def get_serializer(self) -> serializers.Field:
+    def get_serializer(self) -> AnyField:
         if self._serializer is not None:
             return self._serializer
         elif self.parent is not None:
             return self.parent.get_serializer()
         raise ValueError(
-            "Serializer could not be resolved for %r" % self.get_param_name(),
+            "Serializer could not be resolved for %r" % self.get_param_name()
         )
 
-    def get_filterset(self) -> FilterSet:
+    def get_filterset(self) -> FilterSet[Any]:
         if self.parent:
             return self.parent.get_filterset()
+        assert self._filterset is not None, "Could not resolve FilterSet"
         return self._filterset
 
-    def resolve_serializer(self) -> serializers.Field:
+    def resolve_serializer(self) -> AnyField:
         filterset, param = self.get_filterset(), self.get_param_name()
         try:
             serializer = self.get_serializer()
         except ValueError:
-            serializer = filterset.get_serializer(param, None)
-            if serializer is None:
+            dynamic = filterset.get_serializer(param, None)
+            if dynamic is None:
                 raise
-            serializer = copy.deepcopy(serializer)
+            serializer = copy.deepcopy(dynamic)
         else:
             replacement = filterset.get_serializer(param, serializer)
+            if replacement is None:
+                raise ValueError(
+                    "Serializer could not be resolved for %r" % self.get_param_name()
+                )
             if replacement is not serializer:
                 serializer = copy.deepcopy(replacement)
 
         serializer.default = filterset.get_default(param, serializer.default)
-        serializer._context = filterset.get_serializer_context(param)
+        serializer._context = filterset.get_serializer_context(param)  # type: ignore[attr-defined]
         return serializer
 
-    def run_validation(self, value: str | empty, serializer: serializers.Field) -> Any:
+    def run_validation(self, value: str | _Empty, serializer: AnyField) -> Any:
         filterset, param = self.get_filterset(), self.get_param_name()
         return filterset.run_validation(value, serializer, param)
 
-    def parse_value(self, value: str | empty) -> Any:
+    def parse_value(self, value: str | _Empty) -> Any:
         if value is not empty:
             value = serializers.CharField(allow_blank=True).run_validation(value)
             if self.blank == "omit" and value == "":
