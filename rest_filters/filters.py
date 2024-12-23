@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING, Any, Literal
 
 from django.db.models import Q
@@ -134,22 +135,44 @@ class Filter:
             return self._serializer
         elif self.parent is not None:
             return self.parent.get_serializer()
-        raise ValueError("Serializer field is not set for this filter")
+        raise ValueError(
+            "Serializer could not be resolved for %r" % self.get_param_name(),
+        )
 
     def get_filterset(self) -> FilterSet:
         if self.parent:
             return self.parent.get_filterset()
         return self._filterset
 
+    def resolve_serializer(self) -> serializers.Field:
+        filterset, param = self.get_filterset(), self.get_param_name()
+        try:
+            serializer = self.get_serializer()
+        except ValueError:
+            serializer = filterset.get_serializer(param, None)
+            if serializer is None:
+                raise
+            serializer = copy.deepcopy(serializer)
+        else:
+            replacement = filterset.get_serializer(param, serializer)
+            if replacement is not serializer:
+                serializer = copy.deepcopy(replacement)
+
+        serializer.default = filterset.get_default(param, serializer.default)
+        serializer._context = filterset.get_serializer_context(param)
+        return serializer
+
+    def run_validation(self, value: str | empty, serializer: serializers.Field) -> Any:
+        filterset, param = self.get_filterset(), self.get_param_name()
+        return filterset.run_validation(value, serializer, param)
+
     def parse_value(self, value: str | empty) -> Any:
         if value is not empty:
             value = serializers.CharField(allow_blank=True).run_validation(value)
             if self.blank == "omit" and value == "":
                 value = empty
-        filterset, param = self.get_filterset(), self.get_param_name()
-        serializer = filterset.get_serializer(param) or self.get_serializer()
-        serializer.default = filterset.get_default(param, serializer.default)
-        return serializer.run_validation(value)
+        serializer = self.resolve_serializer()
+        return self.run_validation(value, serializer)
 
     def resolve_entry_attrs(self, value: Any) -> Entry:
         if self.template is not None:

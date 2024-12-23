@@ -15,8 +15,8 @@ from django.utils.translation import gettext
 
 from rest_framework import serializers
 from rest_framework.fields import empty
+from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
-from rest_framework.views import APIView
 
 from rest_filters.constraints import Constraint
 from rest_filters.filters import Entry, Filter
@@ -53,7 +53,10 @@ class FilterSet(Generic[_MT_co]):
     compiled_fields: dict[str, Filter]
 
     def __init__(
-        self, request: Request, queryset: QuerySet[_MT_co], view: APIView
+        self,
+        request: Request,
+        queryset: QuerySet[_MT_co],
+        view: GenericAPIView,
     ) -> None:
         self.request = request
         self.queryset = queryset
@@ -192,8 +195,20 @@ class FilterSet(Generic[_MT_co]):
     def get_default(self, param: str, default: Any) -> Any:
         return default
 
-    def get_serializer(self, param: str) -> serializers.Field | None:
-        return None
+    def get_serializer(
+        self, param: str, serializer: serializers.Field | None
+    ) -> serializers.Field | None:
+        return serializer
+
+    def get_serializer_context(self, param: str) -> dict[str, Any]:
+        context = self.view.get_serializer_context()
+        context["filterset"] = self
+        return context
+
+    def run_validation(
+        self, value: str | empty, serializer: serializers.Field, param: str
+    ):
+        return serializer.run_validation(value)
 
     def get_constraints(self) -> Sequence[Constraint]:
         return self.constraints

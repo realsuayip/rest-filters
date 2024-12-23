@@ -33,4 +33,4 @@ def merge_errors(
         if isinstance(source.get(key), list):
             source[key].extend(detail)
         else:
-            source[key] = detail
+            source.setdefault(key, detail)
