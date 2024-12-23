@@ -183,13 +183,12 @@ class Filter:
 
     def resolve_entry_attrs(self, value: Any) -> Entry:
         if self.template is not None:
-            expression = fill_q_template(self.template, value=value)
+            template = ~self.template if self.negate else self.template
+            expression = fill_q_template(template, value=value)
         else:
             field = self.get_field_name()
             lookup = f"{field}__{self.lookup}"
-            expression = Q(**{lookup: value})
-        if self.negate:
-            expression = ~expression
+            expression = Q(**{lookup: value}, _negated=self.negate)
         return Entry(
             group=self.get_group(),
             aliases=self.aliases,
