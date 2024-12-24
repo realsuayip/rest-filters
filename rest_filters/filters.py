@@ -4,6 +4,7 @@ import copy
 from typing import TYPE_CHECKING, Any, Literal
 
 from django.db.models import Q
+from django.db.models.expressions import BaseExpression, Combinable
 from django.http.request import QueryDict
 
 from rest_framework import serializers
@@ -47,7 +48,7 @@ class Filter:
         f: AnyField | None = None,
         /,
         *,
-        field: str | None = None,
+        field: str | BaseExpression | Combinable | None = None,
         lookup: str = "exact",
         template: Q | None = None,
         group: str | None = None,
@@ -71,7 +72,7 @@ class Filter:
             raise ValueError("blank must either be 'keep' or 'omit'")
 
         self._group = group
-        self.aliases = aliases  # not functional
+        self.aliases = aliases
 
         self.negate = negate
 
@@ -114,9 +115,9 @@ class Filter:
             return self.parent.get_group()
         return "chain"
 
-    def get_field_name(self) -> str:
+    def get_db_field(self) -> str | BaseExpression | Combinable:
         if self.parent and self._field is None:
-            return self.parent.get_field_name()
+            return self.parent.get_db_field()
         return self._field or self.name
 
     def get_param_name(self) -> str:
@@ -184,8 +185,16 @@ class Filter:
             template = ~self.template if self.negate else self.template
             expression = fill_q_template(template, value=value)
         else:
-            field = self.get_field_name()
-            lookup = f"{field}__{self.lookup}"
+            field = self.get_db_field()
+            if isinstance(field, (BaseExpression, Combinable)):
+                alias = "_default_alias_%s" % self.get_param_name()
+                if self.aliases is not None:
+                    self.aliases[alias] = field
+                else:
+                    self.aliases = {alias: field}
+                lookup = f"{alias}__{self.lookup}"
+            else:
+                lookup = f"{field}__{self.lookup}"
             expression = Q(**{lookup: value}, _negated=self.negate)
         return Entry(
             group=self.get_group(),

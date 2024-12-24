@@ -158,6 +158,13 @@ class FilterSet(Generic[_MT_co]):
             self.handle_errors(errordict)
         return groupdict, valuedict
 
+    def add_to_queryset(
+        self, queryset: QuerySet[_MT_co], entry: Entry
+    ) -> QuerySet[_MT_co]:
+        if entry.aliases:
+            queryset = queryset.alias(**entry.aliases)
+        return queryset.filter(entry.expression)
+
     def filter_group(
         self,
         queryset: QuerySet[_MT_co],
@@ -167,8 +174,11 @@ class FilterSet(Generic[_MT_co]):
         merge = getattr(self, f"merge_{name}", None)
         if merge is not None:
             entry = merge(entries)
-            return queryset.filter(entry.expression)
-        return queryset.filter(self.get_default_group_expression(name, entries))
+            return self.add_to_queryset(queryset, entry)
+        return self.add_to_queryset(
+            queryset,
+            self.get_default_group_expression(name, entries),
+        )
 
     def get_default_group_expression(
         self, group: str, entries: dict[str, Entry]
@@ -182,7 +192,7 @@ class FilterSet(Generic[_MT_co]):
         groupdict, valuedict = self.get_groups()
 
         for entry in groupdict.pop("chain", {}).values():
-            queryset = queryset.filter(entry.expression)
+            queryset = self.add_to_queryset(queryset, entry)
 
         for name, entries in groupdict.items():
             queryset = self.filter_group(queryset, name, entries)
