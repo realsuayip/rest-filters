@@ -43,4 +43,4 @@ class FilterBackend(filters.BaseFilterBackend):
         view: APIView,
     ) -> QuerySet[_MT_co]:
         filterset = self.get_filterset(request, queryset, view)
-        return filterset.get_queryset()
+        return filterset.filter_queryset()

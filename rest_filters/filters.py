@@ -51,7 +51,6 @@ class Filter:
         lookup: str = "exact",
         template: Q | None = None,
         group: str | None = None,
-        distinct: bool = False,
         negate: bool = False,
         method: str | None = None,
         aliases: dict[str, Any] | None = None,
@@ -75,7 +74,6 @@ class Filter:
         self.aliases = aliases  # not functional
 
         self.negate = negate
-        self.distinct = distinct  # not functional, todo allow list<str> also
 
         self.blank = blank
         self.method = method

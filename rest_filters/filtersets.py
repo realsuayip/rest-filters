@@ -134,7 +134,7 @@ class FilterSet(Generic[_MT_co]):
             )
         return ret
 
-    def get_groups(self) -> dict[str, dict[str, Entry]]:
+    def get_groups(self) -> tuple[dict[str, dict[str, Entry]], dict[str, Any]]:
         params = self.request.query_params
         fields = self.get_fields()
         groupdict: dict[str, dict[str, Entry]]
@@ -156,7 +156,7 @@ class FilterSet(Generic[_MT_co]):
         errordict |= self.handle_unknown_parameters(unknown, known)
         if errordict:
             self.handle_errors(errordict)
-        return groupdict
+        return groupdict, valuedict
 
     def filter_group(
         self,
@@ -177,15 +177,22 @@ class FilterSet(Generic[_MT_co]):
         expressions = (entry.expression for entry in entries.values())
         return functools.reduce(combinator, expressions)
 
-    def get_queryset(self) -> QuerySet[_MT_co]:
+    def filter_queryset(self) -> QuerySet[_MT_co]:
         queryset = self.queryset
-        groupdict = self.get_groups()
+        groupdict, valuedict = self.get_groups()
 
         for entry in groupdict.pop("chain", {}).values():
             queryset = queryset.filter(entry.expression)
 
         for name, entries in groupdict.items():
             queryset = self.filter_group(queryset, name, entries)
+        return self.get_queryset(queryset, valuedict)
+
+    def get_queryset(
+        self,
+        queryset: QuerySet[_MT_co],
+        values: dict[str, Any],
+    ) -> QuerySet[_MT_co]:
         return queryset
 
     def get_fields(self) -> dict[str, Filter]:
