@@ -58,3 +58,9 @@ max-complexity = 10
 
 [tool.mypy]
 strict = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+testpaths = ["tests"]
+pythonpath = ". rest_filters"
+addopts = "--no-migrations --tb=short"
