@@ -1,14 +1,27 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from django.db.models.functions import Length
 from django.http import QueryDict
 
 from rest_framework import serializers
 from rest_framework.fields import empty
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 import pytest
 
 from rest_filters import Filter, FilterSet
+from tests.testapp.views import UserView
+
+T = TypeVar("T", bound=FilterSet[Any])
+
+
+def get_filterset_instance(klass: type[T], *, query: str = "") -> T:
+    factory = APIRequestFactory()
+    request = Request(factory.get(f"/?{query}"))
+    view = UserView(format_kwarg="format")
+    view.setup(request)
+    return klass(request, view.queryset, view)
 
 
 def test_filter_defaults() -> None:
@@ -227,3 +240,34 @@ def test_filter_get_serializer() -> None:
     assert isinstance(f.created.get_serializer(), serializers.DateTimeField)
     assert isinstance(f.created.children[0].get_serializer(), serializers.DateTimeField)
     assert isinstance(f.created.children[1].get_serializer(), serializers.DateField)
+
+
+def test_filter_get_filterset() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+        created = Filter(
+            serializers.DateTimeField(required=False),
+            children=[
+                Filter(param="gte"),
+                Filter(
+                    param="year",
+                    children=[
+                        Filter(param="gte"),
+                    ],
+                ),
+            ],
+        )
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.filter_queryset()
+
+    fields = filterset.get_fields()
+    assert fields["username"].get_filterset() == filterset
+    assert fields["created"].get_filterset() == filterset
+    assert fields["created"].children[0].get_filterset() == filterset
+
+    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+        SomeFilterSet.compiled_fields["username"].get_filterset()
+
+    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+        filterset.compiled_fields["username"].get_filterset()
