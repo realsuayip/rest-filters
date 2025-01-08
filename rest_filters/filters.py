@@ -135,7 +135,10 @@ class Filter:
         if self._serializer is not None:
             return self._serializer
         elif self.parent is not None:
-            return self.parent.get_serializer()
+            try:
+                return self.parent.get_serializer()
+            except ValueError:
+                pass
         raise ValueError(
             "Serializer could not be resolved for %r" % self.get_param_name()
         )

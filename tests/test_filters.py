@@ -11,6 +11,7 @@ from rest_framework.test import APIRequestFactory
 import pytest
 
 from rest_filters import Filter, FilterSet
+from rest_filters.utils import AnyField
 from tests.testapp.views import UserView
 
 T = TypeVar("T", bound=FilterSet[Any])
@@ -271,3 +272,177 @@ def test_filter_get_filterset() -> None:
 
     with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
         filterset.compiled_fields["username"].get_filterset()
+
+
+def test_filter_resolve_serializer() -> None:
+    f = serializers.CharField(required=False)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            f,
+            children=[
+                Filter(param="icontains", lookup="icontains"),
+            ],
+        )
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.filter_queryset()
+    fields = filterset.get_fields()
+
+    field = fields["username"]
+    resolved1 = field.resolve_serializer()
+    resolved2 = field.children[0].resolve_serializer()
+
+    assert resolved1 == resolved2
+    assert not f.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+
+    for resolved in [resolved1, resolved2]:
+        assert resolved != f
+        assert resolved == field._serializer
+        assert isinstance(resolved, serializers.CharField)
+        assert resolved.required is False
+        assert resolved.context
+
+
+def test_filter_resolve_serializer_dynamic_only() -> None:
+    f = serializers.CharField(required=False)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            children=[
+                Filter(param="icontains", lookup="icontains"),
+            ],
+        )
+
+        def get_serializer(
+            self, param: str, serializer: AnyField | None
+        ) -> AnyField | None:
+            if param in ("username", "username.icontains"):
+                return f
+            return super().get_serializer(param, serializer)
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.filter_queryset()
+    fields = filterset.get_fields()
+
+    field = fields["username"]
+    resolved1 = field.resolve_serializer()
+    resolved2 = field.children[0].resolve_serializer()
+
+    assert not f.context
+
+    for resolved in [resolved1, resolved2]:
+        assert resolved != f
+        assert isinstance(resolved, serializers.CharField)
+        assert resolved.required is False
+        assert resolved.context
+
+
+def test_filter_resolve_serializer_dynamic_failed_to_resolve() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter()
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    with pytest.raises(
+        ValueError,
+        match="Serializer could not be resolved for 'username'",
+    ):
+        filterset.filter_queryset()
+
+
+def test_filter_resolve_serializer_dynamic_failed_to_resolve_case_nested() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(children=[Filter(param="icontains", lookup="icontains")])
+
+        def get_serializer(
+            self, param: str, serializer: AnyField | None
+        ) -> AnyField | None:
+            if param == "username":
+                return serializers.CharField()
+            return super().get_serializer(param, serializer)
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    with pytest.raises(
+        ValueError,
+        match=r"Serializer could not be resolved for 'username\.icontains'",
+    ):
+        filterset.filter_queryset()
+
+
+def test_filter_resolve_serializer_replacement() -> None:
+    current, replacement = (
+        serializers.CharField(required=False),
+        serializers.CharField(required=False, min_length=27),
+    )
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(current)
+
+        def get_serializer(
+            self, param: str, serializer: AnyField | None
+        ) -> AnyField | None:
+            return replacement
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.filter_queryset()
+    field = filterset.get_fields()["username"]
+
+    resolved = field.resolve_serializer()
+
+    assert resolved != replacement
+    assert resolved != current
+    assert resolved != field._serializer
+
+    assert isinstance(resolved, serializers.CharField)
+    assert resolved.min_length == 27
+    assert resolved.context
+
+    assert not current.context
+    assert not replacement.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+
+
+def test_filter_resolve_serializer_replacement_attr_changed() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+        def get_serializer(
+            self, param: str, serializer: AnyField | None
+        ) -> AnyField | None:
+            serializer.max_length = 25
+            return serializer
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.filter_queryset()
+
+    field = filterset.get_fields()["username"]
+    resolved = field.resolve_serializer()
+
+    assert resolved == field._serializer
+    assert resolved.context
+    assert resolved.max_length == 25
+
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+
+
+def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
+    f = serializers.CharField(required=False)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(f)
+
+        def get_serializer(
+            self, param: str, serializer: AnyField | None
+        ) -> AnyField | None:
+            return None
+
+    filterset = get_filterset_instance(SomeFilterSet)
+
+    with pytest.raises(
+        ValueError,
+        match="Serializer could not be resolved for 'username'",
+    ):
+        filterset.filter_queryset()
+    assert not f.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
