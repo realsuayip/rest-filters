@@ -1,4 +1,5 @@
 from typing import Any, TypeVar
+from unittest.mock import MagicMock, call
 
 from django.db.models.functions import Length
 from django.http import QueryDict
@@ -446,3 +447,81 @@ def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
         filterset.filter_queryset()
     assert not f.context
     assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+
+
+def test_filter_run_validation() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        name = Filter(serializers.CharField())
+        username = Filter(serializers.CharField())
+
+        def run_validation(self, value: str, serializer: AnyField, param: str) -> Any:
+            if param == "name":
+                return super().run_validation(value, serializer, param)
+            return value.replace("1", "X")
+
+    filterset = get_filterset_instance(SomeFilterSet, query="name=a&username=b")
+    filterset.get_groups()
+
+    fields = filterset.get_fields()
+
+    name = fields["name"]
+    username = fields["username"]
+    assert name.run_validation("abc123", serializers.CharField()) == "abc123"
+    assert username.run_validation("abc123", serializers.CharField()) == "abcX23"
+
+
+def test_filter_parse_value() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    username = filterset.get_fields()["username"]
+    username.run_validation = MagicMock()
+
+    username.parse_value("123")
+    username.parse_value(empty)
+    username.parse_value("")
+
+    username.run_validation.assert_has_calls(
+        calls=[
+            call("123", username._serializer),
+            call(empty, username._serializer),
+            call(empty, username._serializer),
+        ]
+    )
+
+
+def test_filter_parse_value_case_blank_keep() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False), blank="keep")
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    username = filterset.get_fields()["username"]
+    username.run_validation = MagicMock()
+
+    username.parse_value("")
+    username.run_validation.assert_called_once_with("", username._serializer)
+
+
+def test_filter_parse_value_initial_string_parsing() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        created = Filter(serializers.DateTimeField(required=False))
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    created = filterset.get_fields()["created"]
+    created.run_validation = MagicMock()
+
+    created.parse_value(" 2017-01-01\t\n\r")
+    created.run_validation.assert_called_once_with("2017-01-01", created._serializer)
+
+    with pytest.raises(
+        serializers.ValidationError,
+        match="Null characters are not allowed",
+    ):
+        created.parse_value("2017-01-01\0")
