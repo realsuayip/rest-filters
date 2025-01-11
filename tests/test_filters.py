@@ -1,6 +1,7 @@
 from typing import Any, TypeVar
 from unittest.mock import MagicMock, call
 
+from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.http import QueryDict
 
@@ -12,6 +13,7 @@ from rest_framework.test import APIRequestFactory
 import pytest
 
 from rest_filters import Filter, FilterSet
+from rest_filters.filters import Entry
 from rest_filters.utils import AnyField
 from tests.testapp.views import UserView
 
@@ -525,3 +527,126 @@ def test_filter_parse_value_initial_string_parsing() -> None:
         match="Null characters are not allowed",
     ):
         created.parse_value("2017-01-01\0")
+
+
+@pytest.mark.parametrize(
+    "f,entry",
+    [
+        # Field names
+        (
+            Filter(field="username"),
+            Entry(value="value", expression=Q(username__exact="value")),
+        ),
+        (
+            Filter(field="username", lookup="icontains"),
+            Entry(value="value", expression=Q(username__icontains="value")),
+        ),
+        (
+            Filter(field="username", lookup="icontains", negate=True),
+            Entry(value="value", expression=~Q(username__icontains="value")),
+        ),
+        # Templates
+        (
+            Filter(template=Q("username") | Q("email")),
+            Entry(value="value", expression=Q(username="value") | Q(email="value")),
+        ),
+        (
+            Filter(template=Q("username__icontains") | Q("email__contains")),
+            Entry(
+                value="value",
+                expression=Q(username__icontains="value") | Q(email__contains="value"),
+            ),
+        ),
+        (
+            Filter(template=Q("username") | Q("email"), negate=True),
+            Entry(
+                value="value",
+                expression=~(Q(username="value") | Q(email="value")),
+            ),
+        ),
+        # Field expressions
+        (
+            Filter(param="username", field=Length("username")),
+            Entry(
+                value="value",
+                expression=Q(_default_alias_username__exact="value"),
+                aliases={
+                    "_default_alias_username": Length("username"),
+                },
+            ),
+        ),
+        (
+            Filter(param="username", field=Length("username"), lookup="gte"),
+            Entry(
+                value="value",
+                expression=Q(_default_alias_username__gte="value"),
+                aliases={
+                    "_default_alias_username": Length("username"),
+                },
+            ),
+        ),
+        (
+            Filter(
+                param="username_length",
+                field=Length("username"),
+                lookup="gte",
+                negate=True,
+            ),
+            Entry(
+                value="value",
+                expression=~Q(_default_alias_username_length__gte="value"),
+                aliases={
+                    "_default_alias_username_length": Length("username"),
+                },
+            ),
+        ),
+        (
+            Filter(param="username", field=F("username")),
+            Entry(
+                value="value",
+                expression=Q(_default_alias_username__exact="value"),
+                aliases={
+                    "_default_alias_username": F("username"),
+                },
+            ),
+        ),
+        (
+            Filter(
+                param="username",
+                field=F("username"),
+                aliases={"my_email_alias": F("email")},
+            ),
+            Entry(
+                value="value",
+                expression=Q(_default_alias_username__exact="value"),
+                aliases={
+                    "_default_alias_username": F("username"),
+                    "my_email_alias": F("email"),
+                },
+            ),
+        ),
+    ],
+)
+def test_filter_resolve_entry_attrs(f: Filter, entry: Entry) -> None:
+    assert f.resolve_entry_attrs("value") == entry
+
+
+def test_filter_resolve_entry_attrs_child() -> None:
+    f = Filter(
+        group="user_group",
+        param="username",
+        children=[
+            Filter(
+                param="min_length",
+                field=Length("username"),
+                lookup="gte",
+            )
+        ],
+    )
+    entry = f.children[0].resolve_entry_attrs(5)
+    assert entry == Entry(
+        group="user_group",
+        value=5,
+        aliases={"_default_alias_username.min_length": Length("username")},
+        expression=Q(**{"_default_alias_username.min_length__gte": 5}),
+    )

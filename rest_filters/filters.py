@@ -41,6 +41,16 @@ class Entry:
             self.expression,
         )
 
+    def __eq__(self, other: Entry) -> bool:
+        if not isinstance(other, Entry):
+            return NotImplemented
+        return (
+            self.group == other.group
+            and self.aliases == other.aliases
+            and self.value == other.value
+            and self.expression == other.expression
+        )
+
 
 class Filter:
     def __init__(
@@ -65,6 +75,8 @@ class Filter:
         self.template = template
 
         # todo needs tons of other checks
+        # template and field might not be provided at the same time?
+        # template and lookup doesn't make sense either
         if group is not None and not group.isidentifier():
             raise ValueError("Group names must be valid Python identifiers")
 
