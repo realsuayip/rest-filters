@@ -75,6 +75,7 @@ class Filter:
         self.template = template
 
         # todo needs tons of other checks
+        # todo if lookup is given but not param, set param=lookup
         # template and field might not be provided at the same time?
         # template and lookup doesn't make sense either
         if group is not None and not group.isidentifier():

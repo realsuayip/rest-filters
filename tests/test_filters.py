@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, TypeVar
 from unittest.mock import MagicMock, call
 
@@ -6,6 +7,7 @@ from django.db.models.functions import Length
 from django.http import QueryDict
 
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
@@ -650,3 +652,167 @@ def test_filter_resolve_entry_attrs_child() -> None:
         aliases={"_default_alias_username.min_length": Length("username")},
         expression=Q(**{"_default_alias_username.min_length__gte": 5}),
     )
+
+
+def test_filter_resolve_entry() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(required=False),
+            children=[
+                Filter(param="icontains", lookup="icontains"),
+            ],
+        )
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    username = filterset.get_fields()["username"]
+    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
+
+    entry = username.resolve_entry(QueryDict("username=hello"))
+    username.resolve_entry_attrs.assert_called_once_with("hello")
+
+    assert entry == Entry(value="hello", expression=Q(username__exact="hello"))
+
+
+def test_filter_resolve_entry_case_method() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(required=False),
+            children=[
+                Filter(
+                    param="icontains",
+                    method="get_username_icontains",
+                ),
+            ],
+            method="get_username",
+        )
+        created = Filter(serializers.DateField(required=False), method="get_created")
+
+        def get_username(self, param: str, value: str) -> Q:
+            return Q(username=value)
+
+        def get_username_icontains(self, param: str, value: str) -> Q:
+            return Q(username__icontains=value)
+
+        def get_created(self, param: str, value: datetime.date) -> Entry:
+            return Entry(
+                group="my-group",
+                aliases={"dummy": F("created")},
+                value=value,
+                expression=Q(dummy__gte=value),
+            )
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+    query = QueryDict("username=hello&username.icontains=heyo&created=2025-01-01")
+
+    fields = filterset.get_fields()
+    username, created = fields["username"], fields["created"]
+    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
+
+    username_entry = username.resolve_entry(query)
+    username.resolve_entry_attrs.assert_not_called()
+    assert username_entry == Entry(value="hello", expression=Q(username="hello"))
+
+    username_contains_entry = username.children[0].resolve_entry(query)
+    assert username_contains_entry == Entry(
+        value="heyo", expression=Q(username__icontains="heyo")
+    )
+
+    created_entry = created.resolve_entry(query)
+    assert created_entry == Entry(
+        group="my-group",
+        aliases={"dummy": F("created")},
+        value=datetime.date(2025, 1, 1),
+        expression=Q(dummy__gte=datetime.date(2025, 1, 1)),
+    )
+
+
+def test_filter_resolve() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(
+                    param="icontains",
+                    method="get_username_icontains",
+                ),
+            ],
+            method="get_username",
+        )
+        created = Filter(
+            serializers.DateField(),
+            namespace=True,
+            children=[
+                Filter(param="gte", lookup="gte"),
+            ],
+        )
+
+        def get_username_icontains(self, param: str, value: str) -> Q:
+            return Q(username__icontains=value)
+
+        def handle_errors(self, errordict: dict[str, Any]) -> None:
+            # do not raise errors for testing purposes
+            pass
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    fields = filterset.get_fields()
+    username, created = fields["username"], fields["created"]
+    query = QueryDict("username.icontains=hello&created.gte=invalid")
+
+    entries, errors = username.resolve(query)
+    assert entries == {
+        "username.icontains": Entry(
+            value="hello", expression=Q(username__icontains="hello")
+        )
+    }
+    assert errors == {
+        "username": [ErrorDetail("This field is required.", code="required")]
+    }
+
+    entries, errors = created.resolve(query)
+    assert entries == {}
+    assert errors == {
+        "created.gte": [
+            ErrorDetail(
+                string="Date has wrong format."
+                " Use one of these formats instead: YYYY-MM-DD.",
+                code="invalid",
+            )
+        ]
+    }
+
+
+def test_filter_get_all_children():
+    f = Filter(
+        serializers.IntegerField(),
+        param="company",
+        children=[
+            Filter(
+                serializers.CharField(),
+                param="name",
+                children=[
+                    Filter(param="icontains"),
+                    Filter(
+                        param="attributes",
+                        namespace=True,
+                        children=[
+                            Filter(serializers.IntegerField(), param="length"),
+                        ],
+                    ),
+                ],
+            ),
+            Filter(serializers.DateTimeField(), param="created"),
+        ],
+    )
+    params = [child.get_param_name() for child in f.get_all_children()]
+    assert params == [
+        "company.name",
+        "company.name.icontains",
+        "company.name.attributes",
+        "company.name.attributes.length",
+        "company.created",
+    ]
