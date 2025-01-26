@@ -739,13 +739,20 @@ def test_filter_resolve() -> None:
                     method="get_username_icontains",
                 ),
             ],
-            method="get_username",
         )
         created = Filter(
             serializers.DateField(),
             namespace=True,
             children=[
                 Filter(param="gte", lookup="gte"),
+                Filter(
+                    serializers.DateField(required=False),
+                    param="date",
+                    lookup="date",
+                    children=[
+                        Filter(param="gte", lookup="date__gte"),
+                    ],
+                ),
             ],
         )
 
@@ -763,6 +770,7 @@ def test_filter_resolve() -> None:
     username, created = fields["username"], fields["created"]
     query = QueryDict("username.icontains=hello&created.gte=invalid")
 
+    # Partial case
     entries, errors = username.resolve(query)
     assert entries == {
         "username.icontains": Entry(
@@ -773,8 +781,21 @@ def test_filter_resolve() -> None:
         "username": [ErrorDetail("This field is required.", code="required")]
     }
 
+    # All resolved
+    entries, errors = username.resolve(
+        QueryDict("username=abc&username.icontains=hello")
+    )
+    assert entries == {
+        "username": Entry(value="abc", expression=Q(username__exact="abc")),
+        "username.icontains": Entry(
+            value="hello", expression=Q(username__icontains="hello")
+        ),
+    }
+    assert errors == {}
+
+    # Some resolved, some was not provided
     entries, errors = created.resolve(query)
-    assert entries == {}
+    assert entries == {"created.date": None, "created.date.gte": None}
     assert errors == {
         "created.gte": [
             ErrorDetail(
@@ -783,6 +804,21 @@ def test_filter_resolve() -> None:
                 code="invalid",
             )
         ]
+    }
+
+    # Deep child case
+    entries, errors = created.resolve(QueryDict("created.date.gte=2024-01-01"))
+    assert entries == {
+        "created.date": None,
+        "created.date.gte": Entry(
+            value=datetime.date(2024, 1, 1),
+            expression=Q(created__date__gte=datetime.date(2024, 1, 1)),
+        ),
+    }
+    assert errors == {
+        "created.gte": [
+            ErrorDetail(string="This field is required.", code="required"),
+        ],
     }
 
 
