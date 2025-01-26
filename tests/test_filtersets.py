@@ -9,6 +9,7 @@ from rest_filters import Filter, FilterSet
 from rest_filters.constraints import MutuallyExclusive
 from rest_filters.filtersets import Options
 from rest_filters.utils import notset
+from tests.test_filters import get_filterset_instance
 
 
 def test_filterset_options() -> None:
@@ -233,3 +234,34 @@ def test_filterset_compiled_fields_bad_meta_fields() -> None:
                     "bad_value",
                     "another_bad",
                 )
+
+
+def test_filterset_init_copies_compiled_fields() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(min_length=3))
+
+    compiled = SomeFilterSet.compiled_fields["username"]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    fields = instance.fields
+    copied = fields["username"]
+
+    assert copied is not compiled
+
+
+def test_filterset_init_copies_constraints() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            constraints = [
+                MutuallyExclusive(fields=["username", "username.icontains"]),
+            ]
+
+    compiled = SomeFilterSet.options.constraints[0]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    constraints = instance.constraints
+    copied = constraints[0]
+
+    assert copied is not compiled
