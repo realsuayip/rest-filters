@@ -41,7 +41,7 @@ class Entry:
             self.expression,
         )
 
-    def __eq__(self, other: Entry) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Entry):
             return NotImplemented
         return (
