@@ -1,15 +1,20 @@
 import operator
 from typing import Any
 
+from django.db.models import F, Q, Value
+from django.db.models.functions import Concat
+
 from rest_framework import serializers
 
 import pytest
 
 from rest_filters import Filter, FilterSet
 from rest_filters.constraints import MutuallyExclusive
+from rest_filters.filters import Entry
 from rest_filters.filtersets import Options
 from rest_filters.utils import notset
 from tests.test_filters import get_filterset_instance
+from tests.testapp.models import User
 
 
 def test_filterset_options() -> None:
@@ -265,3 +270,151 @@ def test_filterset_init_copies_constraints() -> None:
     copied = constraints[0]
 
     assert copied is not compiled
+
+
+def test_filterset_get_group_entry() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(value="hello", expression=Q(username="hello")),
+            "username.icontains": Entry(
+                value="hello", expression=Q(username__icontains="hello")
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        value={"username": "hello", "username.icontains": "hello"},
+        expression=Q(username="hello") & Q(username__icontains="hello"),
+    )
+
+
+def test_filterset_get_default_group_expression_case_custom_combinator() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            combinators = {"group": operator.or_}
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(value="hello", expression=Q(username="hello")),
+            "username.icontains": Entry(
+                value="hello", expression=Q(username__icontains="hello")
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        value={"username": "hello", "username.icontains": "hello"},
+        expression=Q(username="hello") | Q(username__icontains="hello"),
+    )
+
+
+def test_filterset_get_default_group_expression_case_aliases() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            combinators = {"group": operator.or_}
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+                aliases={"some_alias": Value("some")},
+            ),
+            "username.icontains": Entry(
+                value="hello",
+                expression=Q(username__icontains="hello"),
+                aliases={"other_alias": Value("öther")},
+            ),
+            "username.startswith": Entry(
+                value="hello2",
+                expression=Q(username__startswith="hello2"),
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        aliases={
+            "some_alias": Value("some"),
+            "other_alias": Value("öther"),
+        },
+        value={
+            "username": "hello",
+            "username.icontains": "hello",
+            "username.startswith": "hello2",
+        },
+        expression=Q(username="hello")
+        | Q(username__icontains="hello")
+        | Q(username__startswith="hello2"),
+    )
+
+
+@pytest.mark.django_db
+def test_filterset_add_to_queryset() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    outcome = User.objects.filter(Q(username__icontains="hello"))
+    queryset = instance.add_to_queryset(
+        User.objects.all(),
+        Entry(value="hello", expression=Q(username__icontains="hello")),
+    )
+    assert str(queryset.query) == str(outcome.query)
+
+
+@pytest.mark.django_db
+def test_filterset_add_to_queryset_case_alias() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    outcome = User.objects.alias(
+        name=Concat(Value("user"), F("username")),
+    ).filter(Q(name__icontains="hello"))
+
+    queryset = instance.add_to_queryset(
+        User.objects.all(),
+        Entry(
+            value="hello",
+            aliases={"name": Concat(Value("user"), F("username"))},
+            expression=Q(name__icontains="hello"),
+        ),
+    )
+    assert str(queryset.query) == str(outcome.query)
+
+
+def test_filterset_filter_group() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    outcome = User.objects.filter(Q(username="hello") & Q(username__icontains="hello"))
+
+    queryset = instance.filter_group(
+        User.objects.all(),
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+            ),
+            "username.icontains": Entry(
+                value="hello",
+                expression=Q(username__icontains="hello"),
+            ),
+        },
+    )
+    assert str(queryset.query) == str(outcome.query)

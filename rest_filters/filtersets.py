@@ -168,24 +168,30 @@ class FilterSet(Generic[_MT_co]):
     def filter_group(
         self,
         queryset: QuerySet[_MT_co],
-        name: str,
+        group: str,
         entries: dict[str, Entry],
     ) -> QuerySet[_MT_co]:
-        merge = getattr(self, f"merge_{name}", None)
-        if merge is not None:
-            entry = merge(entries)
-            return self.add_to_queryset(queryset, entry)
-        return self.add_to_queryset(
-            queryset,
-            self.get_default_group_expression(name, entries),
-        )
+        return self.add_to_queryset(queryset, self.get_group_entry(group, entries))
 
-    def get_default_group_expression(
-        self, group: str, entries: dict[str, Entry]
-    ) -> Any:
+    def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Any:
         combinator = self.options.combinators.get(group, operator.and_)
         expressions = (entry.expression for entry in entries.values())
-        return functools.reduce(combinator, expressions)
+        expression = functools.reduce(combinator, expressions)
+        return Entry(
+            group=group,
+            aliases=functools.reduce(
+                operator.or_,
+                (
+                    entry.aliases
+                    for entry in entries.values()
+                    if entry.aliases is not None
+                ),
+                {},
+            )
+            or None,
+            value={name: entry.value for name, entry in entries.items()},
+            expression=expression,
+        )
 
     def filter_queryset(self) -> QuerySet[_MT_co]:
         queryset = self.queryset
