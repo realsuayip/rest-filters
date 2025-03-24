@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from django.db.models import QuerySet
@@ -23,7 +25,7 @@ class FilterBackend(filters.BaseFilterBackend):
         request: Request,
         queryset: QuerySet[_MT_co],
         view: APIView,
-    ) -> "type[FilterSet[_MT_co]]":
+    ) -> type[FilterSet[_MT_co]]:
         # todo def get_filterset_class
         return view.filterset_classes.get(view.action)  # type: ignore
 
@@ -32,7 +34,7 @@ class FilterBackend(filters.BaseFilterBackend):
         request: Request,
         queryset: QuerySet[_MT_co],
         view: APIView,
-    ) -> "FilterSet[_MT_co]":
+    ) -> FilterSet[_MT_co]:
         klass = self.get_filterset_class(request, queryset, view)
         return klass(request, queryset, view)
 
