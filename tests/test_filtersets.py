@@ -5,6 +5,8 @@ from django.db.models import F, Q, Value
 from django.db.models.functions import Concat
 
 from rest_framework import serializers
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 import pytest
 
@@ -418,3 +420,257 @@ def test_filterset_filter_group() -> None:
         },
     )
     assert str(queryset.query) == str(outcome.query)
+
+
+def test_get_group_entry() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        first_name = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+                aliases={
+                    "some_alias": Value("hello"),
+                },
+            ),
+            "first_name.icontains": Entry(
+                value="john",
+                expression=Q(first_name__icontains="john"),
+                aliases={
+                    "some_other_alias": Value("john"),
+                },
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        aliases={
+            "some_alias": Value("hello"),
+            "some_other_alias": Value("john"),
+        },
+        value={
+            "username": "hello",
+            "first_name.icontains": "john",
+        },
+        expression=Q(username="hello") & Q(first_name__icontains="john"),
+    )
+
+
+def test_get_group_entry_case_combinator() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        first_name = Filter(serializers.CharField())
+
+        class Meta:
+            combinators = {
+                "group": operator.or_,
+            }
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+                aliases={
+                    "some_alias": Value("hello"),
+                },
+            ),
+            "first_name.icontains": Entry(
+                value="john",
+                expression=Q(first_name__icontains="john"),
+                aliases={
+                    "some_other_alias": Value("john"),
+                },
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        aliases={
+            "some_alias": Value("hello"),
+            "some_other_alias": Value("john"),
+        },
+        value={
+            "username": "hello",
+            "first_name.icontains": "john",
+        },
+        expression=Q(username="hello") | Q(first_name__icontains="john"),
+    )
+
+
+def test_get_group_entry_case_no_alias() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        first_name = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+            ),
+            "first_name.icontains": Entry(
+                value="john",
+                expression=Q(first_name__icontains="john"),
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        aliases=None,
+        value={
+            "username": "hello",
+            "first_name.icontains": "john",
+        },
+        expression=Q(username="hello") & Q(first_name__icontains="john"),
+    )
+
+
+@pytest.mark.django_db
+def test_filter_queryset() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names")
+        first_name = Filter(serializers.CharField(), group="names")
+        last_name = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    expected = User.objects.filter(last_name="doe").filter(
+        Q(username="hello") & Q(first_name="john"),
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_related_field_chain() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        company_name = Filter(
+            serializers.CharField(),
+            field="following_companies__name",
+        )
+        company_address = Filter(
+            serializers.CharField(),
+            field="following_companies__address",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="company_name=apple&company_address=california",
+    )
+    queryset = instance.filter_queryset()
+    query = str(queryset.query)
+
+    assert query.count('INNER JOIN "testapp_company"') == 2
+    assert query.count('INNER JOIN "testapp_user_following_companies"') == 2
+    assert query.count("INNER JOIN") == 4
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_related_field_group() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        company = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(param="name", field="following_companies__name"),
+                Filter(param="address", field="following_companies__address"),
+            ],
+            group="company",
+            namespace=True,
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="company.name=apple&company.address=california",
+    )
+    queryset = instance.filter_queryset()
+    query = str(queryset.query)
+
+    assert query.count('INNER JOIN "testapp_company"') == 1
+    assert query.count('INNER JOIN "testapp_user_following_companies"') == 1
+    assert query.count("INNER JOIN") == 2
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_related_mixed() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        company = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(param="name", field="following_companies__name"),
+                Filter(param="address", field="following_companies__address"),
+            ],
+            group="company",
+            namespace=True,
+        )
+        company_id = Filter(
+            serializers.IntegerField(),
+            field="following_companies",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="company.name=apple&company.address=california&company_id=3",
+    )
+    queryset = instance.filter_queryset()
+    query = str(queryset.query)
+
+    assert query.count('INNER JOIN "testapp_company"') == 1
+    assert query.count('INNER JOIN "testapp_user_following_companies"') == 2
+    assert query.count("INNER JOIN") == 3
+
+
+def test_user_overrideable_method_defaults() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+
+    # .get_queryset()
+    qs = User.objects.all()
+    queryset = instance.get_queryset(qs, {})
+    assert queryset is qs
+
+    # .get_default()
+    default = instance.get_default("param", 47)
+    assert default == 47
+
+    # .get_serializer()
+    serializer = instance.get_serializer("param", None)
+    assert serializer is None
+
+    s = serializers.CharField()
+    serializer = instance.get_serializer("param", s)
+    assert serializer is s
+
+    # .get_serializer_context()
+    context = instance.get_serializer_context("param")
+    assert isinstance(context["request"], Request)
+    assert context["format"]
+    assert isinstance(context["view"], APIView)
+    assert context["filterset"] is instance
+
+    # .get_constraints()
+    constraints = instance.get_constraints()
+    assert constraints is instance.constraints
+
+    # .run_validation()
+    class MyField(serializers.IntegerField):
+        def run_validation(self, data: Any = ...) -> Any:
+            ret = super().run_validation(data)
+            return ret + 1
+
+    f = MyField()
+    value = instance.run_validation("1", f, "param")
+    assert value == 2
