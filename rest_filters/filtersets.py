@@ -240,8 +240,8 @@ class FilterSet(Generic[_MT_co]):
         constraints = self.get_constraints()
         for constraint in constraints:
             constraint.filterset = self
-            if not constraint.check(**valuedict):
-                message = constraint.get_message(**valuedict)
+            if not constraint.check(valuedict):
+                message = constraint.get_message(valuedict)
                 merge_errors(errors, message)
         return errors
 

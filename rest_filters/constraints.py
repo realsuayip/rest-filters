@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Constraint",
+    "MethodConstraint",
     "MutuallyExclusive",
     "MutuallyInclusive",
 ]
@@ -25,43 +26,54 @@ class Constraint:
     def __init__(
         self,
         *,
-        fields: Sequence[str],
         message: StrOrPromise = "",
-        method: str | None = None,
+        **kwargs: Any,
     ) -> None:
-        self.fields = fields
-        self.message = message
-        self.method = method
+        self._message = message
+        self.kwargs = kwargs
         self.filterset: FilterSet[Any] | None = None
 
-    def get_message(self, **kwargs: Any) -> dict[str, Any]:
-        message = self.message or gettext(
-            "%(constraint)s failed for fields: %(fields)s"
-        ) % {
-            "constraint": self.__class__.__name__,
-            "fields": ", ".join(f'"{field}"' for field in self.fields),
-        }
+    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+        message = self._message or gettext(
+            "Request failed to meet constraint: %(constraint)s"
+        ) % {"constraint": self.__class__.__name__}
         return {api_settings.NON_FIELD_ERRORS_KEY: [message]}
 
-    def check(self, **kwargs: Any) -> bool:
-        assert self.method, "Missing method for constraint"
+    def check(self, values: dict[str, Any]) -> bool:
+        raise NotImplementedError
+
+
+class MethodConstraint(Constraint):
+    def __init__(
+        self,
+        *,
+        message: StrOrPromise = "",
+        method: str,
+        **kwargs: Any,
+    ) -> None:
+        self.method = method
+        super().__init__(message=message, **kwargs)
+
+    def check(self, values: dict[str, Any]) -> bool:
         assert self.filterset, "Missing filterset for constraint"
-        return getattr(self.filterset, self.method)(**kwargs)  # type: ignore[no-any-return]
+        return getattr(self.filterset, self.method)(values)  # type: ignore[no-any-return]
 
 
 class MutuallyExclusive(Constraint):
     def __init__(
         self,
         *,
+        message: StrOrPromise = "",
         fields: Sequence[str],
         **kwargs: Any,
     ) -> None:
         assert len(fields) > 1, "Provide 2 or more fields for this constraint"
-        super().__init__(fields=fields, **kwargs)
+        self.fields = fields
+        super().__init__(message=message, **kwargs)
 
-    def get_message(self, **kwargs: Any) -> dict[str, Any]:
-        if self.message:
-            return super().get_message(**kwargs)
+    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+        if self._message:
+            return super().get_message(values)
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
@@ -70,29 +82,31 @@ class MutuallyExclusive(Constraint):
                 )
                 % {
                     "fields": ", ".join(
-                        f'"{field}"' for field in self.fields if field in kwargs
+                        f'"{field}"' for field in self.fields if field in values
                     )
                 }
             ]
         }
 
-    def check(self, **kwargs: Any) -> bool:
-        return sum(field in kwargs for field in self.fields) <= 1
+    def check(self, values: dict[str, Any]) -> bool:
+        return sum(field in values for field in self.fields) <= 1
 
 
 class MutuallyInclusive(Constraint):
     def __init__(
         self,
         *,
+        message: StrOrPromise = "",
         fields: Sequence[str],
         **kwargs: Any,
     ) -> None:
         assert len(fields) > 1, "Provide 2 or more fields for this constraint"
-        super().__init__(fields=fields, **kwargs)
+        self.fields = fields
+        super().__init__(message=message, **kwargs)
 
-    def get_message(self, **kwargs: Any) -> dict[str, Any]:
-        if self.message:
-            return super().get_message(**kwargs)
+    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+        if self._message:
+            return super().get_message(values)
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
@@ -103,6 +117,6 @@ class MutuallyInclusive(Constraint):
             ]
         }
 
-    def check(self, **kwargs: Any) -> bool:
-        fields = [field in kwargs for field in self.fields]
+    def check(self, values: dict[str, Any]) -> bool:
+        fields = [field in values for field in self.fields]
         return all(fields) if any(fields) else True
