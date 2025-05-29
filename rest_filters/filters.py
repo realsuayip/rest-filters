@@ -118,8 +118,12 @@ class Filter:
     def bind(self, parent: Filter) -> None:
         self.parent = parent
 
-        if self._param is None:
-            raise ValueError("param needs to be set for child filters")
+        self._param = self._param or self.lookup
+        if not self._param:
+            raise ValueError(
+                "Either 'param' or 'lookup' parameter needs to"
+                " be specified for child filters"
+            )
 
     def get_group(self) -> str:
         if self._group is not None:

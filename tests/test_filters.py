@@ -70,8 +70,21 @@ def test_filter_child_binding() -> None:
 
 
 def test_filter_child_binding_param_required_for_child() -> None:
-    with pytest.raises(ValueError, match="param needs to be set for child filters"):
+    with pytest.raises(
+        ValueError,
+        match="Either 'param' or 'lookup' parameter needs to"
+        " be specified for child filters",
+    ):
         Filter(children=[Filter()])
+
+
+def test_filter_child_binding_param_defaults_to_lookup() -> None:
+    f = Filter(
+        param="age",
+        children=[Filter(lookup="gte")],
+    )
+    assert f.children[0]._param == "gte"
+    assert f.children[0].get_param_name() == "age.gte"
 
 
 def test_namespace_filter_without_children() -> None:
