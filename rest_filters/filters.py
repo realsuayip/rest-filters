@@ -59,7 +59,7 @@ class Filter:
         /,
         *,
         field: str | BaseExpression | Combinable | None = None,
-        lookup: str = "exact",
+        lookup: str = "",
         template: Q | None = None,
         group: str | None = None,
         negate: bool = False,
@@ -71,7 +71,7 @@ class Filter:
         blank: Literal["keep", "omit"] = "omit",
     ) -> None:
         self._field = field
-        self.lookup = lookup or "exact"
+        self.lookup = lookup
         self.template = template
 
         # todo needs tons of other checks
@@ -201,17 +201,17 @@ class Filter:
             template = ~self.template if self.negate else self.template
             expression = fill_q_template(template, value=value)
         else:
-            field = self.get_db_field()
-            if isinstance(field, (BaseExpression, Combinable)):
+            lhs = self.get_db_field()
+            if isinstance(lhs, (BaseExpression, Combinable)):
                 alias = "_default_alias_%s" % self.get_param_name()
                 if self.aliases is not None:
-                    self.aliases[alias] = field
+                    self.aliases[alias] = lhs
                 else:
-                    self.aliases = {alias: field}
-                lookup = f"{alias}__{self.lookup}"
-            else:
-                lookup = f"{field}__{self.lookup}"
-            expression = Q(**{lookup: value}, _negated=self.negate)
+                    self.aliases = {alias: lhs}
+                lhs = alias
+            if self.lookup:
+                lhs = f"{lhs}__{self.lookup}"
+            expression = Q(**{lhs: value}, _negated=self.negate)
         return Entry(
             group=self.get_group(),
             aliases=self.aliases,

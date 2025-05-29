@@ -34,7 +34,7 @@ def test_filter_defaults() -> None:
     f = Filter()
 
     assert f.blank == "omit"
-    assert f.lookup == "exact"
+    assert f.lookup == ""
     assert f.negate is False
     assert f.namespace is False
     assert f.children == []
@@ -537,7 +537,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
         # Field names
         (
             Filter(field="username"),
-            Entry(value="value", expression=Q(username__exact="value")),
+            Entry(value="value", expression=Q(username="value")),
         ),
         (
             Filter(field="username", lookup="icontains"),
@@ -571,7 +571,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
             Filter(param="username", field=Length("username")),
             Entry(
                 value="value",
-                expression=Q(_default_alias_username__exact="value"),
+                expression=Q(_default_alias_username="value"),
                 aliases={
                     "_default_alias_username": Length("username"),
                 },
@@ -606,7 +606,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
             Filter(param="username", field=F("username")),
             Entry(
                 value="value",
-                expression=Q(_default_alias_username__exact="value"),
+                expression=Q(_default_alias_username="value"),
                 aliases={
                     "_default_alias_username": F("username"),
                 },
@@ -620,7 +620,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
             ),
             Entry(
                 value="value",
-                expression=Q(_default_alias_username__exact="value"),
+                expression=Q(_default_alias_username="value"),
                 aliases={
                     "_default_alias_username": F("username"),
                     "my_email_alias": F("email"),
@@ -672,7 +672,7 @@ def test_filter_resolve_entry() -> None:
     entry = username.resolve_entry(QueryDict("username=hello"))
     username.resolve_entry_attrs.assert_called_once_with("hello")
 
-    assert entry == Entry(value="hello", expression=Q(username__exact="hello"))
+    assert entry == Entry(value="hello", expression=Q(username="hello"))
 
 
 def test_filter_resolve_entry_case_method() -> None:
@@ -786,7 +786,7 @@ def test_filter_resolve() -> None:
         QueryDict("username=abc&username.icontains=hello")
     )
     assert entries == {
-        "username": Entry(value="abc", expression=Q(username__exact="abc")),
+        "username": Entry(value="abc", expression=Q(username="abc")),
         "username.icontains": Entry(
             value="hello", expression=Q(username__icontains="hello")
         ),
