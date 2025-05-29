@@ -87,6 +87,12 @@ def test_filter_child_binding_param_defaults_to_lookup() -> None:
     assert f.children[0].get_param_name() == "age.gte"
 
 
+def test_filter_name_resolution_failure_message() -> None:
+    f = Filter()
+    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+        f.get_param_name()
+
+
 def test_namespace_filter_without_children() -> None:
     with pytest.raises(
         ValueError, match="Namespace filters are required to have child filters"
@@ -97,7 +103,10 @@ def test_namespace_filter_without_children() -> None:
 def test_filter_repr() -> None:
     f = Filter(serializers.DateTimeField(), param="created")
     assert (
-        repr(f) == "Filter(param='created', group='chain', serializer=DateTimeField())"
+        repr(f) == "Filter(_field=None, lookup='', template=None, _group=None,"
+        " aliases=None, negate=False, blank='omit', method=None,"
+        " _param='created', _serializer=DateTimeField(), _filterset=None,"
+        " namespace=False, children=[])"
     )
 
 

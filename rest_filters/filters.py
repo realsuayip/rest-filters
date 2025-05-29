@@ -105,12 +105,25 @@ class Filter:
             raise ValueError("Namespace filters are required to have child filters")
 
     def __repr__(self) -> str:
-        return "%s(param=%r, group=%r, serializer=%r)" % (
-            self.__class__.__name__,
-            self.get_param_name(),
-            self.get_group(),
-            self.get_serializer(),
-        )
+        args = []
+        for name in (
+            "_field",
+            "lookup",
+            "template",
+            "_group",
+            "aliases",
+            "negate",
+            "blank",
+            "method",
+            "_param",
+            "_serializer",
+            "_filterset",
+            "namespace",
+            "children",
+        ):
+            attr = getattr(self, name)
+            args.append("%s=%r" % (name, attr))
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(args))
 
     def __set_name__(self, owner: FilterSet[Any], name: str) -> None:
         self.name = name
@@ -138,7 +151,10 @@ class Filter:
         return self._field or self.name
 
     def get_param_name(self) -> str:
-        name = self._param or self.name
+        try:
+            name = self._param or self.name
+        except AttributeError as e:
+            raise AssertionError("Could not resolve FilterSet") from e
         if self.parent is not None:
             namespace = self.parent.get_param_name()
             return f"{namespace}.{name}"
