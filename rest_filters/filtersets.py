@@ -151,9 +151,10 @@ class FilterSet(Generic[_MT_co]):
             for param, error in errors.items():
                 errordict[param] = error
                 valuedict[param] = empty
-        unknown = [field for field in params if field not in known]
         merge_errors(errordict, self.handle_constraints(valuedict))
-        errordict |= self.handle_unknown_parameters(unknown, known)
+        unknown = [field for field in params if field not in known]
+        if unknown:
+            merge_errors(errordict, self.handle_unknown_parameters(unknown, known))
         if errordict:
             self.handle_errors(errordict)
         return groupdict, valuedict

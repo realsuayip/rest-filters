@@ -1,3 +1,4 @@
+import datetime
 import operator
 from typing import Any
 
@@ -5,13 +6,14 @@ from django.db.models import F, Q, Value
 from django.db.models.functions import Concat
 
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
 import pytest
 
 from rest_filters import Filter, FilterSet
-from rest_filters.constraints import MutuallyExclusive
+from rest_filters.constraints import Constraint, MutuallyExclusive
 from rest_filters.filters import Entry
 from rest_filters.filtersets import Options
 from rest_filters.utils import notset
@@ -674,3 +676,227 @@ def test_user_overrideable_method_defaults() -> None:
     f = MyField()
     value = instance.run_validation("1", f, "param")
     assert value == 2
+
+
+def test_get_groups() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            aliases={
+                "random_alias": F("username"),
+            },
+        )
+        created = Filter(
+            serializers.DateField(required=False),
+            children=[
+                Filter(lookup="gte"),
+                Filter(lookup="lte"),
+            ],
+            group="created_g",
+        )
+        first_name = Filter(
+            serializers.CharField(required=False, allow_blank=True),
+            children=[
+                Filter(
+                    lookup="exact",
+                    blank="keep",
+                )
+            ],
+        )
+        last_name = Filter(serializers.CharField(required=False))
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello"
+        "&created.gte=2023-01-01"
+        "&created.lte=2023-01-01"
+        "&first_name.exact=",
+    )
+
+    groupdict, valuedict = instance.get_groups()
+    assert groupdict == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                aliases={
+                    "random_alias": F("username"),
+                },
+                value="hello",
+                expression=Q(username="hello"),
+            ),
+            "first_name.exact": Entry(
+                group="chain",
+                aliases=None,
+                value="",
+                expression=Q(first_name__exact=""),
+            ),
+        },
+        "created_g": {
+            "created.gte": Entry(
+                group="created_g",
+                aliases=None,
+                value=datetime.date(2023, 1, 1),
+                expression=Q(created__gte=datetime.date(2023, 1, 1)),
+            ),
+            "created.lte": Entry(
+                group="created_g",
+                aliases=None,
+                value=datetime.date(2023, 1, 1),
+                expression=Q(created__lte=datetime.date(2023, 1, 1)),
+            ),
+        },
+    }
+    assert valuedict == {
+        "username": "hello",
+        "created.gte": datetime.date(2023, 1, 1),
+        "created.lte": datetime.date(2023, 1, 1),
+        "first_name.exact": "",
+    }
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="first_name.exact=",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username": [
+            ErrorDetail(
+                string="This field is required.",
+                code="required",
+            )
+        ]
+    }
+
+
+def test_handle_unknown_parameters() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet)
+    r = instance.handle_unknown_parameters(
+        ["unknown", "goes", "here", "phoenix"],
+        ["known", "go", "there", "where"],
+    )
+    assert r == {
+        "unknown": ['This query parameter does not exist. Did you mean "known"?'],
+        "goes": ['This query parameter does not exist. Did you mean "go"?'],
+        "here": [
+            "This query parameter does not exist. Did you mean one of these:"
+            ' "where", "there"?'
+        ],
+        "phoenix": ["This query parameter does not exist."],
+    }
+
+
+def test_get_groups_all_errors_are_merged() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        first_name = Filter(serializers.CharField(required=False))
+        last_name = Filter(serializers.CharField(required=False))
+
+        created = Filter(serializers.DateField(required=False))
+
+        class Meta:
+            constraints = [
+                MutuallyExclusive(
+                    fields=[
+                        "first_name",
+                        "last_name",
+                    ]
+                )
+            ]
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="first_name=hello&last_name=world&creates=2024-01-01",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username": [ErrorDetail(string="This field is required.", code="required")],
+        "non_field_errors": [
+            ErrorDetail(
+                string="Following fields are mutually exclusive, you may only"
+                ' provide one of them: "first_name", "last_name"',
+                code="invalid",
+            )
+        ],
+        "creates": [
+            ErrorDetail(
+                string='This query parameter does not exist. Did you mean "created"?',
+                code="invalid",
+            )
+        ],
+    }
+
+
+def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        first_name = Filter(serializers.CharField(required=False))
+        last_name = Filter(serializers.CharField(required=False))
+
+        class Meta:
+            constraints = [MutuallyExclusive(fields=["first_name", "last_name"])]
+
+        def handle_unknown_parameters(
+            self, unknown: list[str], known: list[str]
+        ) -> dict[str, Any]:
+            s = super().handle_unknown_parameters(unknown, known)
+            return {
+                "non_field_errors": [
+                    f"{key}: {''.join(value)}" for key, value in s.items()
+                ]
+            }
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="first_name=hello&last_name=world&unknown1=u&unknown2=u",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+
+    assert ctx.value.detail == {
+        "non_field_errors": [
+            ErrorDetail(
+                string="Following fields are mutually exclusive, you may only"
+                ' provide one of them: "first_name", "last_name"',
+                code="invalid",
+            ),
+            ErrorDetail(
+                string="unknown1: This query parameter does not exist.", code="invalid"
+            ),
+            ErrorDetail(
+                string="unknown2: This query parameter does not exist.", code="invalid"
+            ),
+        ]
+    }
+
+
+def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
+    class CustomConstraint(Constraint):
+        def check(self, values: dict[str, Any]) -> bool:
+            return False
+
+        def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+            return {"first_name": ["Constraint failed"]}
+
+    class SomeFilterSet(FilterSet[Any]):
+        first_name = Filter(serializers.CharField())
+
+        class Meta:
+            constraints = [CustomConstraint()]
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "first_name": [
+            ErrorDetail(string="This field is required.", code="required"),
+            ErrorDetail(string="Constraint failed", code="invalid"),
+        ]
+    }
