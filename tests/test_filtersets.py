@@ -900,3 +900,18 @@ def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
             ErrorDetail(string="Constraint failed", code="invalid"),
         ]
     }
+
+
+def test_get_groups_considers_known_parameters() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        first_name = Filter(serializers.CharField())
+
+        class Meta:
+            known_parameters = ["page"]
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="first_name=hello&page=1",
+    )
+    _, valuedict = instance.get_groups()
+    assert valuedict == {"first_name": "hello"}
