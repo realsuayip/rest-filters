@@ -174,7 +174,7 @@ class FilterSet(Generic[_MT_co]):
     ) -> QuerySet[_MT_co]:
         return self.add_to_queryset(queryset, self.get_group_entry(group, entries))
 
-    def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Any:
+    def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
         combinator = self.options.combinators.get(group, operator.and_)
         expressions = (entry.expression for entry in entries.values())
         expression = functools.reduce(combinator, expressions)

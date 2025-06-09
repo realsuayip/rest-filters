@@ -17,7 +17,7 @@ notset = NotSet()
 
 
 def fill_q_template(template: Q, *, value: Any) -> Q:
-    conditions = []
+    conditions: list[Any] = []
     for child in template.children:
         if isinstance(child, Q):
             conditions.append(fill_q_template(child, value=value))
