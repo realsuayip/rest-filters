@@ -43,7 +43,13 @@ def merge_errors(
     errors: dict[str, Any],
 ) -> None:
     for key, detail in errors.items():
-        if isinstance(source.get(key), list):
-            source[key].extend(detail)
+        src = source.get(key)
+        if isinstance(src, list):
+            if isinstance(detail, (list, tuple)):
+                source[key].extend(detail)
+            else:
+                source[key].append(detail)
+        elif isinstance(src, dict) and isinstance(detail, dict):
+            merge_errors(source[key], detail)
         else:
             source.setdefault(key, detail)
