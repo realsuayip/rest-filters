@@ -161,6 +161,27 @@ def test_mutually_exclusive_constraint() -> None:
     assert errors5 == errors6 == errors7 == {}
 
 
+def test_mutually_exclusive_constraint_case_custom_error_message() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        pasta = Filter(serializers.BooleanField(required=False))
+        ketchup = Filter(serializers.BooleanField(required=False))
+
+        class Meta:
+            constraints = [
+                MutuallyExclusive(
+                    message="This is not the Italian way...",
+                    fields=[
+                        "pasta",
+                        "ketchup",
+                    ],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    errors = instance.handle_constraints({"pasta": "yes", "ketchup": "yes"})
+    assert errors == {"non_field_errors": ["This is not the Italian way..."]}
+
+
 def test_mutually_inclusive_constraint() -> None:
     class SomeFilterSet(FilterSet[Any]):
         a = Filter(serializers.IntegerField())
@@ -197,6 +218,27 @@ def test_mutually_inclusive_constraint() -> None:
         }
     )
     assert errors2 == {}
+
+
+def test_mutually_inclusive_constraint_case_custom_error_message() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        pasta = Filter(serializers.BooleanField(required=False))
+        olive_oil_ml = Filter(serializers.IntegerField(required=False))
+
+        class Meta:
+            constraints = [
+                MutuallyInclusive(
+                    message="This is not the Italian way...",
+                    fields=[
+                        "pasta",
+                        "olive_oil_ml",
+                    ],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    errors = instance.handle_constraints({"pasta": "yes"})
+    assert errors == {"non_field_errors": ["This is not the Italian way..."]}
 
 
 def test_constraint_combination_bad_combination() -> None:
