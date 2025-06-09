@@ -67,4 +67,22 @@ django_settings_module = "tests.settings"
 DJANGO_SETTINGS_MODULE = "tests.settings"
 testpaths = ["tests"]
 pythonpath = ". rest_filters"
-addopts = "--no-migrations --tb=short"
+addopts = """
+    --no-migrations
+    --tb=short
+    --cov=rest_filters
+    --cov-report html
+    --cov-context=test
+ """
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING",
+    "raise NotImplementedError",
+]
+
+[tool.coverage.html]
+show_contexts = true
