@@ -553,6 +553,22 @@ def test_filter_parse_value_initial_string_parsing() -> None:
         created.parse_value("2017-01-01\0")
 
 
+def test_entry_repr() -> None:
+    entry = Entry(
+        aliases={
+            "field": F("field"),
+        },
+        value=1.25,
+        expression=Q(field=1.25),
+    )
+    assert (
+        repr(entry) == "Entry(group='chain',"
+        " aliases={'field': F(field)},"
+        " value=1.25,"
+        " expression=<Q: (AND: ('field', 1.25))>)"
+    )
+
+
 @pytest.mark.parametrize(
     "f,entry",
     [

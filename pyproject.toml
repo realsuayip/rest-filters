@@ -82,6 +82,7 @@ branch = true
 exclude_also = [
     "if TYPE_CHECKING",
     "raise NotImplementedError",
+    "return NotImplemented",
 ]
 
 [tool.coverage.html]
