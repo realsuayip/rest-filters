@@ -29,10 +29,10 @@ class Options:
     def __init__(
         self,
         *,
-        fields: Sequence[str] | NotSet,
-        known_parameters: Sequence[str] | NotSet,
-        constraints: Sequence[Constraint] | NotSet,
-        combinators: dict[str, Any] | NotSet,
+        fields: Sequence[str] | NotSet = notset,
+        known_parameters: Sequence[str] | NotSet = notset,
+        constraints: Sequence[Constraint] | NotSet = notset,
+        combinators: dict[str, Any] | NotSet = notset,
     ) -> None:
         if known_parameters is notset:
             known_parameters = []
@@ -75,8 +75,7 @@ class FilterSet(Generic[_MT_co]):
             opts = {field: getattr(meta, field, notset) for field in meta_fields}
             options = Options(**opts)
         else:
-            opts = {field: notset for field in meta_fields}
-            options = Options(**opts)
+            options = Options()
         cls.options = options
         cls.compiled_fields = cls._compile_fields()
 
