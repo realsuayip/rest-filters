@@ -11,6 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
+from rest_filters.conf import app_settings
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
@@ -68,7 +69,7 @@ class Filter:
         param: str | None = None,
         children: list[Filter] | None = None,
         namespace: bool = False,
-        blank: Literal["keep", "omit"] = "omit",
+        blank: Literal["keep", "omit"] | None = None,
     ) -> None:
         self._field = field
         self.lookup = lookup
@@ -81,6 +82,8 @@ class Filter:
         if group is not None and not group.isidentifier():
             raise ValueError("Group names must be valid Python identifiers")
 
+        if blank is None:
+            blank = app_settings.BLANK
         if blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
 
