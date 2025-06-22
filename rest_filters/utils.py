@@ -1,4 +1,5 @@
-from typing import Any, TypeVar
+import enum
+from typing import Any, Final, TypeVar
 
 from django.db import models
 from django.db.models import Q
@@ -8,12 +9,8 @@ from rest_framework.fields import Field
 AnyField = Field[Any, Any, Any, Any]
 _MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
 
-
-class NotSet:
-    pass
-
-
-notset = NotSet()
+NotSet = enum.Enum("NotSet", "notset")
+notset: Final = NotSet.notset
 
 
 def fill_q_template(template: Q, *, value: Any) -> Q:
