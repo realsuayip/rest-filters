@@ -34,11 +34,11 @@ class Options:
         constraints: Sequence[Constraint] | NotSet,
         combinators: dict[str, Any] | NotSet,
     ) -> None:
-        if isinstance(known_parameters, NotSet):
+        if known_parameters is notset:
             known_parameters = []
-        if isinstance(constraints, NotSet):
+        if constraints is notset:
             constraints = []
-        if isinstance(combinators, NotSet):
+        if combinators is notset:
             combinators = {}
 
         self.fields = fields
@@ -114,7 +114,7 @@ class FilterSet(Generic[_MT_co]):
             for name, field in vars(cls).items()
             if isinstance(field, Filter)
         }
-        if isinstance(cls.options.fields, NotSet):
+        if cls.options.fields is notset:
             return fields
         ret, available = {}, []
         for name, field in fields.items():
