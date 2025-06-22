@@ -218,10 +218,8 @@ class FilterSet(Generic[_MT_co]):
     def get_default(self, param: str, default: Any) -> Any:
         return default
 
-    def get_serializer(
-        self, param: str, serializer: AnyField | None
-    ) -> AnyField | None:
-        return serializer
+    def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
+        return serializer  # type: ignore[return-value]
 
     def get_serializer_context(self, param: str) -> dict[str, Any]:
         context: dict[str, Any] = self.view.get_serializer_context()  # type: ignore[attr-defined]
