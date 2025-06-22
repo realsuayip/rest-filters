@@ -13,7 +13,6 @@ from rest_filters.utils import _MT_co
 if TYPE_CHECKING:
     from rest_filters import FilterSet
 
-
 __all__ = [
     "FilterBackend",
 ]
@@ -25,17 +24,24 @@ class FilterBackend(filters.BaseFilterBackend):
         request: Request,
         queryset: QuerySet[_MT_co],
         view: APIView,
-    ) -> type[FilterSet[_MT_co]]:
+    ) -> type[FilterSet[_MT_co]] | None:
         # todo def get_filterset_class
-        return view.filterset_classes.get(view.action)  # type: ignore
+        if klass := getattr(view, "filterset_class", None):
+            return klass  # type: ignore[no-any-return]
+        try:
+            return view.get_filterset_class()  # type: ignore[no-any-return, attr-defined]
+        except AttributeError:
+            return None
 
     def get_filterset(
         self,
         request: Request,
         queryset: QuerySet[_MT_co],
         view: APIView,
-    ) -> FilterSet[_MT_co]:
+    ) -> FilterSet[_MT_co] | None:
         klass = self.get_filterset_class(request, queryset, view)
+        if klass is None:
+            return None
         return klass(request, queryset, view)
 
     def filter_queryset(
@@ -45,4 +51,6 @@ class FilterBackend(filters.BaseFilterBackend):
         view: APIView,
     ) -> QuerySet[_MT_co]:
         filterset = self.get_filterset(request, queryset, view)
+        if filterset is None:
+            return queryset
         return filterset.filter_queryset()
