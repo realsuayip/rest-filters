@@ -7,7 +7,7 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, Generic
+from typing import TYPE_CHECKING, Any, Generic, final
 
 from django.db.models import QuerySet
 from django.utils.translation import gettext
@@ -26,33 +26,54 @@ if TYPE_CHECKING:
     from rest_framework.fields import _Empty
 
 
+@final
 class Options:
+    __slots__ = (
+        "_extend_known_parameters",
+        "_handle_unknown_parameters",
+        "_known_parameters",
+        "combinators",
+        "constraints",
+        "fields",
+    )
+
     def __init__(
         self,
         *,
-        fields: Sequence[str] | NotSet = notset,
-        known_parameters: Sequence[str] | NotSet = notset,
-        extend_known_parameters: Sequence[str] | NotSet = notset,
+        fields: list[str] | tuple[str] | NotSet = notset,
+        known_parameters: list[str] | tuple[str] | NotSet = notset,
+        extend_known_parameters: list[str] | tuple[str] | NotSet = notset,
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
     ) -> None:
-        if known_parameters is notset:
-            known_parameters = app_settings.KNOWN_PARAMETERS
-        if handle_unknown_parameters is notset:
-            handle_unknown_parameters = app_settings.HANDLE_UNKNOWN_PARAMETERS
+        self._known_parameters = known_parameters
+        self._extend_known_parameters = extend_known_parameters
+        self._handle_unknown_parameters = handle_unknown_parameters
+
         if constraints is notset:
             constraints = []
         if combinators is notset:
             combinators = {}
-        if extend_known_parameters is not notset:
-            known_parameters = (*known_parameters, *extend_known_parameters)
 
         self.fields = fields
-        self.known_parameters = known_parameters
-        self.handle_unknown_parameters = handle_unknown_parameters
         self.constraints = constraints
         self.combinators = combinators
+
+    @property
+    def known_parameters(self) -> tuple[str] | list[str]:
+        params = self._known_parameters
+        if params is notset:
+            params = app_settings.KNOWN_PARAMETERS
+        if self._extend_known_parameters is not notset:
+            params = (*params, *self._extend_known_parameters)
+        return params
+
+    @property
+    def handle_unknown_parameters(self) -> bool:
+        if self._handle_unknown_parameters is notset:
+            return app_settings.HANDLE_UNKNOWN_PARAMETERS
+        return self._handle_unknown_parameters
 
 
 class FilterSet(Generic[_MT_co]):
