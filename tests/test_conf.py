@@ -88,3 +88,53 @@ def test_handle_unknown_parameters_false() -> None:
     instance = get_filterset_instance(SomeFilterSet, query="unrelated=&username=abc")
     _, valuedict = instance.get_groups()
     assert valuedict == {"username": "abc"}
+
+
+def test_known_parameters_default() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+    assert SomeFilterSet.options.known_parameters == [
+        "page",
+        "page_size",
+        "cursor",
+        "ordering",
+        "version",
+        "format",
+    ]
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "ORDERING_PARAM": "my_ordering_param",
+        "VERSION_PARAM": "my_version_param",
+        "URL_FORMAT_OVERRIDE": None,
+    }
+)
+def test_known_parameters_default_drf_dynamic_override() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+    assert SomeFilterSet.options.known_parameters == [
+        "page",
+        "page_size",
+        "cursor",
+        "my_ordering_param",
+        "my_version_param",
+    ]
+
+
+@override_settings(REST_FILTERS={"KNOWN_PARAMETERS": ["hello", "world"]})
+def test_known_parameters_custom() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+    assert SomeFilterSet.options.known_parameters == ["hello", "world"]
+
+
+@override_settings(REST_FILTERS={"KNOWN_PARAMETERS": []})
+def test_known_parameters_custom_empty() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False))
+
+    assert SomeFilterSet.options.known_parameters == []

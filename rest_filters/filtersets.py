@@ -37,7 +37,7 @@ class Options:
         combinators: dict[str, Any] | NotSet = notset,
     ) -> None:
         if known_parameters is notset:
-            known_parameters = []
+            known_parameters = app_settings.KNOWN_PARAMETERS
         if handle_unknown_parameters is notset:
             handle_unknown_parameters = app_settings.HANDLE_UNKNOWN_PARAMETERS
         if constraints is notset:

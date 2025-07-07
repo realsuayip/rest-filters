@@ -55,7 +55,14 @@ def test_filterset_options_no_meta() -> None:
     assert isinstance(options, Options)
 
     assert options.fields is notset
-    assert options.known_parameters == []
+    assert options.known_parameters == [
+        "page",
+        "page_size",
+        "cursor",
+        "ordering",
+        "version",
+        "format",
+    ]
     assert options.combinators == {}
     assert options.constraints == []
 
