@@ -32,6 +32,7 @@ class Options:
         *,
         fields: Sequence[str] | NotSet = notset,
         known_parameters: Sequence[str] | NotSet = notset,
+        extend_known_parameters: Sequence[str] | NotSet = notset,
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
@@ -44,6 +45,8 @@ class Options:
             constraints = []
         if combinators is notset:
             combinators = {}
+        if extend_known_parameters is not notset:
+            known_parameters = (*known_parameters, *extend_known_parameters)
 
         self.fields = fields
         self.known_parameters = known_parameters
@@ -75,6 +78,7 @@ class FilterSet(Generic[_MT_co]):
             "constraints",
             "combinators",
             "known_parameters",
+            "extend_known_parameters",
             "handle_unknown_parameters",
         )
         if meta := getattr(cls, "Meta", None):
