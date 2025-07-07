@@ -9,6 +9,7 @@ from django.conf import settings
 @dataclass(frozen=True)
 class AppSettings:
     BLANK: Literal["keep"] | Literal["omit"] = "omit"
+    HANDLE_UNKNOWN_PARAMETERS: bool = True
 
     def __getattribute__(self, __name: str) -> Any:
         user_settings = getattr(settings, "REST_FILTERS", {})

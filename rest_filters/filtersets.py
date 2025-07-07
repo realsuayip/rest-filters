@@ -17,6 +17,7 @@ from rest_framework.fields import empty
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from rest_filters.conf import app_settings
 from rest_filters.constraints import Constraint
 from rest_filters.filters import Entry, Filter
 from rest_filters.utils import AnyField, NotSet, _MT_co, merge_errors, notset
@@ -31,11 +32,14 @@ class Options:
         *,
         fields: Sequence[str] | NotSet = notset,
         known_parameters: Sequence[str] | NotSet = notset,
+        handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
     ) -> None:
         if known_parameters is notset:
             known_parameters = []
+        if handle_unknown_parameters is notset:
+            handle_unknown_parameters = app_settings.HANDLE_UNKNOWN_PARAMETERS
         if constraints is notset:
             constraints = []
         if combinators is notset:
@@ -43,6 +47,7 @@ class Options:
 
         self.fields = fields
         self.known_parameters = known_parameters
+        self.handle_unknown_parameters = handle_unknown_parameters
         self.constraints = constraints
         self.combinators = combinators
 
@@ -70,6 +75,7 @@ class FilterSet(Generic[_MT_co]):
             "constraints",
             "combinators",
             "known_parameters",
+            "handle_unknown_parameters",
         )
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in meta_fields}
@@ -151,9 +157,10 @@ class FilterSet(Generic[_MT_co]):
                 errordict[param] = error
                 valuedict[param] = empty
         merge_errors(errordict, self.handle_constraints(valuedict))
-        unknown = [field for field in params if field not in known]
-        if unknown:
-            merge_errors(errordict, self.handle_unknown_parameters(unknown, known))
+        if self.options.handle_unknown_parameters:
+            unknown = [field for field in params if field not in known]
+            if unknown:
+                merge_errors(errordict, self.handle_unknown_parameters(unknown, known))
         if errordict:
             self.handle_errors(errordict)
         return groupdict, valuedict

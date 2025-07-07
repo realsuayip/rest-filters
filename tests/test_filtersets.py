@@ -29,6 +29,7 @@ def test_filterset_options() -> None:
         class Meta:
             fields = ("username",)
             known_parameters = ("page", "page_size")
+            handle_unknown_parameters = True
             combinators = {"group": operator.or_}
             constraints = (MutuallyExclusive(fields=["username", "created"]),)
 
@@ -37,6 +38,7 @@ def test_filterset_options() -> None:
 
     assert options.fields == ("username",)
     assert options.known_parameters == ("page", "page_size")
+    assert options.handle_unknown_parameters is True
     assert options.combinators == {"group": operator.or_}
 
     assert len(options.constraints) == 1
