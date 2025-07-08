@@ -7,7 +7,7 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, Generic, final
+from typing import TYPE_CHECKING, Any, Generic, Literal, final
 
 from django.db.models import QuerySet
 from django.utils.translation import gettext
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 @final
 class Options:
     __slots__ = (
+        "_blank",
         "_extend_known_parameters",
         "_handle_unknown_parameters",
         "_known_parameters",
@@ -46,10 +47,12 @@ class Options:
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
+        blank: Literal["keep", "omit"] | NotSet = notset,
     ) -> None:
         self._known_parameters = known_parameters
         self._extend_known_parameters = extend_known_parameters
         self._handle_unknown_parameters = handle_unknown_parameters
+        self._blank = blank
 
         if constraints is notset:
             constraints = []
@@ -74,6 +77,12 @@ class Options:
         if self._handle_unknown_parameters is notset:
             return app_settings.HANDLE_UNKNOWN_PARAMETERS
         return self._handle_unknown_parameters
+
+    @property
+    def blank(self) -> Literal["keep", "omit"]:
+        if self._blank is notset:
+            return app_settings.BLANK
+        return self._blank
 
 
 class FilterSet(Generic[_MT_co]):
@@ -101,6 +110,7 @@ class FilterSet(Generic[_MT_co]):
             "known_parameters",
             "extend_known_parameters",
             "handle_unknown_parameters",
+            "blank",
         )
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in meta_fields}

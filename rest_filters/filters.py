@@ -11,7 +11,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
-from rest_filters.conf import app_settings
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
@@ -82,9 +81,7 @@ class Filter:
         if group is not None and not group.isidentifier():
             raise ValueError("Group names must be valid Python identifiers")
 
-        if blank is None:
-            blank = app_settings.BLANK
-        if blank not in ("keep", "omit"):
+        if blank is not None and blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
 
         self._group = group
@@ -92,7 +89,7 @@ class Filter:
 
         self.negate = negate
 
-        self.blank = blank
+        self._blank = blank
         self.method = method
         self._param = param
         self._serializer = f
@@ -116,7 +113,7 @@ class Filter:
             "_group",
             "aliases",
             "negate",
-            "blank",
+            "_blank",
             "method",
             "_param",
             "_serializer",
@@ -130,6 +127,13 @@ class Filter:
 
     def __set_name__(self, owner: FilterSet[Any], name: str) -> None:
         self.name = name
+
+    @property
+    def blank(self) -> Literal["keep", "omit"]:
+        if self._blank is None:
+            filterset = self.get_filterset()
+            return filterset.options.blank
+        return self._blank
 
     def bind(self, parent: Filter) -> None:
         self.parent = parent
@@ -214,7 +218,7 @@ class Filter:
     def parse_value(self, value: str | _Empty) -> Any:
         if value is not empty:
             value = serializers.CharField(allow_blank=True).run_validation(value)
-            if self.blank == "omit" and value == "":
+            if value == "" and self.blank == "omit":
                 value = empty
         serializer = self.resolve_serializer()
         return self.run_validation(value, serializer)

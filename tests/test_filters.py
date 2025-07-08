@@ -33,7 +33,6 @@ def get_filterset_instance(klass: type[T], *, query: str = "") -> T:
 def test_filter_defaults() -> None:
     f = Filter()
 
-    assert f.blank == "omit"
     assert f.lookup == ""
     assert f.negate is False
     assert f.namespace is False
@@ -104,7 +103,7 @@ def test_filter_repr() -> None:
     f = Filter(serializers.DateTimeField(), param="created")
     assert (
         repr(f) == "Filter(_field=None, lookup='', template=None, _group=None,"
-        " aliases=None, negate=False, blank='omit', method=None,"
+        " aliases=None, negate=False, _blank=None, method=None,"
         " _param='created', _serializer=DateTimeField(), _filterset=None,"
         " namespace=False, children=[])"
     )
