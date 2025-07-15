@@ -181,8 +181,11 @@ class FilterSet(Generic[_MT_co]):
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
         known = [*self.options.known_parameters]
         for _, field in fields.items():
-            field._filterset = self
-            entries, errors = field.resolve(params)
+            try:
+                field._filterset = self
+                entries, errors = field.resolve(params)
+            finally:
+                field._filterset = None
             known.extend((*entries, *errors))
             for param, entry in entries.items():
                 if entry is not None:
@@ -289,9 +292,12 @@ class FilterSet(Generic[_MT_co]):
         constraints = self.get_constraints()
         for constraint in constraints:
             constraint.filterset = self
-            if not constraint.check(valuedict):
-                message = constraint.get_message(valuedict)
-                merge_errors(errors, message)
+            try:
+                if not constraint.check(valuedict):
+                    message = constraint.get_message(valuedict)
+                    merge_errors(errors, message)
+            finally:
+                constraint.filterset = None
         return errors
 
     def handle_unknown_parameters(

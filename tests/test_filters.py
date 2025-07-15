@@ -287,9 +287,11 @@ def test_filter_get_filterset() -> None:
         )
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.filter_queryset()
 
     fields = filterset.get_fields()
+    for f in fields.values():
+        # simulate what `get_groups` does
+        f._filterset = filterset
     assert fields["username"].get_filterset() == filterset
     assert fields["created"].get_filterset() == filterset
     assert fields["created"].children[0].get_filterset() == filterset
@@ -313,10 +315,10 @@ def test_filter_resolve_serializer() -> None:
         )
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.filter_queryset()
     fields = filterset.get_fields()
 
     field = fields["username"]
+    field._filterset = filterset
     resolved1 = field.resolve_serializer()
     resolved2 = field.children[0].resolve_serializer()
 
@@ -350,10 +352,10 @@ def test_filter_resolve_serializer_dynamic_only() -> None:
             return super().get_serializer(param, serializer)
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.filter_queryset()
     fields = filterset.get_fields()
 
     field = fields["username"]
+    field._filterset = filterset
     resolved1 = field.resolve_serializer()
     resolved2 = field.children[0].resolve_serializer()
 
@@ -412,8 +414,8 @@ def test_filter_resolve_serializer_replacement() -> None:
             return replacement
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.filter_queryset()
     field = filterset.get_fields()["username"]
+    field._filterset = filterset
 
     resolved = field.resolve_serializer()
 
@@ -441,9 +443,9 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
             return serializer
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.filter_queryset()
 
     field = filterset.get_fields()["username"]
+    field._filterset = filterset
     resolved = field.resolve_serializer()
 
     assert resolved == field._serializer
@@ -486,12 +488,12 @@ def test_filter_run_validation() -> None:
             return value.replace("1", "X")
 
     filterset = get_filterset_instance(SomeFilterSet, query="name=a&username=b")
-    filterset.get_groups()
 
     fields = filterset.get_fields()
 
     name = fields["name"]
     username = fields["username"]
+    name._filterset = username._filterset = filterset
     assert name.run_validation("abc123", serializers.CharField()) == "abc123"
     assert username.run_validation("abc123", serializers.CharField()) == "abcX23"
 
@@ -501,9 +503,9 @@ def test_filter_parse_value() -> None:
         username = Filter(serializers.CharField(required=False))
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     username = filterset.get_fields()["username"]
+    username._filterset = filterset
     username.run_validation = MagicMock()
 
     username.parse_value("123")
@@ -524,9 +526,9 @@ def test_filter_parse_value_case_blank_keep() -> None:
         username = Filter(serializers.CharField(required=False), blank="keep")
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     username = filterset.get_fields()["username"]
+    username._filterset = filterset
     username.run_validation = MagicMock()
 
     username.parse_value("")
@@ -538,9 +540,9 @@ def test_filter_parse_value_initial_string_parsing() -> None:
         created = Filter(serializers.DateTimeField(required=False))
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     created = filterset.get_fields()["created"]
+    created._filterset = filterset
     created.run_validation = MagicMock()
 
     created.parse_value(" 2017-01-01\t\n\r")
@@ -702,9 +704,9 @@ def test_filter_resolve_entry() -> None:
         )
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     username = filterset.get_fields()["username"]
+    username._filterset = filterset
     username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
 
     entry = username.resolve_entry(QueryDict("username=hello"))
@@ -742,11 +744,11 @@ def test_filter_resolve_entry_case_method() -> None:
             )
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
     query = QueryDict("username=hello&username.icontains=heyo&created=2025-01-01")
 
     fields = filterset.get_fields()
     username, created = fields["username"], fields["created"]
+    username._filterset = created._filterset = filterset
     username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
 
     username_entry = username.resolve_entry(query)
@@ -772,9 +774,9 @@ def test_filter_resolve_entry_case_noop() -> None:
         ordering = Filter(serializers.CharField(required=False), noop=True)
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     ordering = filterset.get_fields()["ordering"]
+    ordering._filterset = filterset
 
     entry = ordering.resolve_entry(QueryDict("ordering=id"))
     assert entry == Entry(value="id", expression=notset)
@@ -790,9 +792,9 @@ def test_filter_resolve_entry_case_noop_with_method() -> None:
             return Q(username=value)
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     ordering = filterset.get_fields()["username"]
+    ordering._filterset = filterset
 
     entry = ordering.resolve_entry(QueryDict("username=jack52"))
     assert entry == Entry(value="jack52", expression=Q(username="jack52"))
@@ -836,10 +838,10 @@ def test_filter_resolve() -> None:
             pass
 
     filterset = get_filterset_instance(SomeFilterSet)
-    filterset.get_groups()
 
     fields = filterset.get_fields()
     username, created = fields["username"], fields["created"]
+    username._filterset = created._filterset = filterset
     query = QueryDict("username.icontains=hello&created.gte=invalid")
 
     # Partial case
