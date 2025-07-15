@@ -75,15 +75,22 @@ class Filter:
         self.lookup = lookup
         self.template = template
 
-        # todo needs tons of other checks
-        # todo if lookup is given but not param, set param=lookup
-        # template and field might not be provided at the same time?
-        # template and lookup doesn't make sense either
         if group is not None and not group.isidentifier():
             raise ValueError("Group names must be valid Python identifiers")
-
         if blank is not None and blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
+        if template and lookup:
+            raise ValueError(
+                "'template' and 'lookup' cannot be used together. Add lookup to"
+                " your template instead, for example: Q('username__icontains')"
+            )
+        if template and field:
+            raise ValueError("'template' and 'field' cannot be used together")
+        if negate and method:
+            raise ValueError(
+                "'method' and 'negate' cannot be used together. Negate the"
+                " expression in your method instead."
+            )
 
         self._group = group
         self.aliases = aliases

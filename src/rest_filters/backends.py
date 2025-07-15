@@ -25,7 +25,6 @@ class FilterBackend(filters.BaseFilterBackend):
         queryset: QuerySet[_MT_co],
         view: APIView,
     ) -> type[FilterSet[_MT_co]] | None:
-        # todo def get_filterset_class
         if klass := getattr(view, "filterset_class", None):
             return klass  # type: ignore[no-any-return]
         try:

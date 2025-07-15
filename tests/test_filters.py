@@ -61,6 +61,39 @@ def test_filter_blank_invalid_choice() -> None:
     assert f2.blank == "omit"
 
 
+def test_filter_template_and_field_provided() -> None:
+    with pytest.raises(ValueError) as ctx:
+        Filter(
+            field="username",
+            template=Q("hello"),
+        )
+    assert ctx.value.args == ("'template' and 'field' cannot be used together",)
+
+
+def test_filter_template_and_lookup_provided() -> None:
+    with pytest.raises(ValueError) as ctx:
+        Filter(
+            lookup="icontains",
+            template=Q("username"),
+        )
+    assert ctx.value.args == (
+        "'template' and 'lookup' cannot be used together. Add lookup to"
+        " your template instead, for example: Q('username__icontains')",
+    )
+
+
+def test_filter_negate_and_method_provided() -> None:
+    with pytest.raises(ValueError) as ctx:
+        Filter(
+            negate=True,
+            method="my_method",
+        )
+    assert ctx.value.args == (
+        "'method' and 'negate' cannot be used together. Negate the expression"
+        " in your method instead.",
+    )
+
+
 def test_filter_child_binding() -> None:
     child1, child2 = Filter(param="child1"), Filter(param="child2")
     parent = Filter(children=[child1, child2])
