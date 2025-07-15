@@ -198,7 +198,7 @@ class FilterSet(Generic[_MT_co]):
                 merge_errors(errordict, self.handle_unknown_parameters(unknown, known))
         if errordict:
             self.handle_errors(errordict)
-        return groupdict, valuedict
+        return dict(groupdict), valuedict
 
     def add_to_queryset(
         self, queryset: QuerySet[_MT_co], entry: Entry
