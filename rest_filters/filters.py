@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
-from rest_filters.utils import AnyField, fill_q_template
+from rest_filters.utils import AnyField, fill_q_template, notset
 
 if TYPE_CHECKING:
     from rest_framework.fields import _Empty
@@ -69,6 +69,7 @@ class Filter:
         children: list[Filter] | None = None,
         namespace: bool = False,
         blank: Literal["keep", "omit"] | None = None,
+        noop: bool = False,
     ) -> None:
         self._field = field
         self.lookup = lookup
@@ -88,6 +89,7 @@ class Filter:
         self.aliases = aliases
 
         self.negate = negate
+        self.noop = noop
 
         self._blank = blank
         self.method = method
@@ -113,6 +115,7 @@ class Filter:
             "_group",
             "aliases",
             "negate",
+            "noop",
             "_blank",
             "method",
             "_param",
@@ -251,7 +254,8 @@ class Filter:
             value = self.parse_value(self.get_query_value(query_dict))
         except SkipField:
             return None
-
+        if self.noop:
+            return Entry(group=self.get_group(), value=value, expression=notset)
         if self.method is not None:
             param = self.get_param_name()
             result = getattr(self.get_filterset(), self.method)(param, value)

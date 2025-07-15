@@ -19,6 +19,7 @@ from rest_filters.filtersets import Options
 from rest_filters.utils import notset
 from tests.test_filters import get_filterset_instance
 from tests.testapp.models import User
+from tests.testapp.views import UserView
 
 
 def test_filterset_options() -> None:
@@ -413,6 +414,20 @@ def test_filterset_add_to_queryset_case_alias() -> None:
     assert str(queryset.query) == str(outcome.query)
 
 
+def test_filterset_add_to_queryset_case_noop() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    original = User.objects.all()
+    instance = get_filterset_instance(SomeFilterSet)
+    queryset = instance.add_to_queryset(
+        original,
+        Entry(value="hello", expression=notset),
+    )
+    assert queryset is original
+    assert "WHERE" not in str(queryset.query)
+
+
 def test_filterset_filter_group() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
@@ -550,6 +565,35 @@ def test_get_group_entry_case_no_alias() -> None:
     )
 
 
+def test_get_group_entry_case_noop() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        first_name = Filter(serializers.CharField(), noop=True)
+
+    instance = get_filterset_instance(SomeFilterSet)
+    entry = instance.get_group_entry(
+        "group",
+        {
+            "username": Entry(
+                value="hello",
+                expression=Q(username="hello"),
+            ),
+            "first_name": Entry(
+                value="john",
+                expression=Q(),
+            ),
+        },
+    )
+    assert entry == Entry(
+        group="group",
+        value={
+            "username": "hello",
+            "first_name": "john",
+        },
+        expression=Q(username="hello"),
+    )
+
+
 @pytest.mark.django_db
 def test_filter_queryset() -> None:
     class SomeFilterSet(FilterSet[Any]):
@@ -644,6 +688,22 @@ def test_filter_queryset_case_related_mixed() -> None:
     assert query.count('INNER JOIN "testapp_company"') == 1
     assert query.count('INNER JOIN "testapp_user_following_companies"') == 2
     assert query.count("INNER JOIN") == 3
+
+
+def test_filter_queryset_case_noop() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names", noop=True)
+        first_name = Filter(serializers.CharField(), group="names", noop=True)
+        last_name = Filter(serializers.CharField(), noop=True)
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+
+    queryset = instance.filter_queryset()
+    assert queryset is UserView.queryset
+    assert "WHERE" not in str(queryset.query)
 
 
 def test_user_overrideable_method_defaults() -> None:
@@ -928,3 +988,38 @@ def test_get_groups_considers_known_parameters() -> None:
     )
     _, valuedict = instance.get_groups()
     assert valuedict == {"first_name": "hello"}
+
+
+def test_get_groups_noop() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names", noop=True)
+        first_name = Filter(serializers.CharField(), group="names", noop=True)
+        last_name = Filter(serializers.CharField(), noop=True)
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+
+    groupdict, valuedict = instance.get_groups()
+    assert groupdict == {
+        "names": {
+            "username": Entry(
+                group="names", aliases=None, value="hello", expression=notset
+            ),
+            "first_name": Entry(
+                group="names", aliases=None, value="john", expression=notset
+            ),
+        },
+        "chain": {
+            "last_name": Entry(
+                group="chain", aliases=None, value="doe", expression=notset
+            )
+        },
+    }
+
+    assert valuedict == {
+        "username": "hello",
+        "first_name": "john",
+        "last_name": "doe",
+    }

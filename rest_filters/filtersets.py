@@ -203,6 +203,8 @@ class FilterSet(Generic[_MT_co]):
     def add_to_queryset(
         self, queryset: QuerySet[_MT_co], entry: Entry
     ) -> QuerySet[_MT_co]:
+        if entry.expression is notset:
+            return queryset
         if entry.aliases:
             queryset = queryset.alias(**entry.aliases)
         return queryset.filter(entry.expression)
@@ -217,8 +219,15 @@ class FilterSet(Generic[_MT_co]):
 
     def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
         combinator = self.options.combinators.get(group, operator.and_)
-        expressions = (entry.expression for entry in entries.values())
-        expression = functools.reduce(combinator, expressions)
+        expressions = [
+            entry.expression
+            for entry in entries.values()
+            if entry.expression is not notset
+        ]
+        if expressions:
+            expression = functools.reduce(combinator, expressions)
+        else:
+            expression = notset
         return Entry(
             group=group,
             aliases=functools.reduce(

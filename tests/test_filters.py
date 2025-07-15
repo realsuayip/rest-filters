@@ -16,7 +16,7 @@ import pytest
 
 from rest_filters import Filter, FilterSet
 from rest_filters.filters import Entry
-from rest_filters.utils import AnyField
+from rest_filters.utils import AnyField, notset
 from tests.testapp.views import UserView
 
 T = TypeVar("T", bound=FilterSet[Any])
@@ -42,6 +42,7 @@ def test_filter_defaults() -> None:
     assert f.aliases is None
     assert f.template is None
     assert f.method is None
+    assert f.noop is False
 
 
 def test_filter_group_is_valid_identifier() -> None:
@@ -103,7 +104,7 @@ def test_filter_repr() -> None:
     f = Filter(serializers.DateTimeField(), param="created")
     assert (
         repr(f) == "Filter(_field=None, lookup='', template=None, _group=None,"
-        " aliases=None, negate=False, _blank=None, method=None,"
+        " aliases=None, negate=False, noop=False, _blank=None, method=None,"
         " _param='created', _serializer=DateTimeField(), _filterset=None,"
         " namespace=False, children=[])"
     )
@@ -764,6 +765,40 @@ def test_filter_resolve_entry_case_method() -> None:
         value=datetime.date(2025, 1, 1),
         expression=Q(dummy__gte=datetime.date(2025, 1, 1)),
     )
+
+
+def test_filter_resolve_entry_case_noop() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        ordering = Filter(serializers.CharField(required=False), noop=True)
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    ordering = filterset.get_fields()["ordering"]
+
+    entry = ordering.resolve_entry(QueryDict("ordering=id"))
+    assert entry == Entry(value="id", expression=notset)
+
+
+def test_filter_resolve_entry_case_noop_with_method() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(required=False), method="get_username")
+
+        def get_username(self, param: str, value: str) -> Any:
+            if value == "do_nothing":
+                return notset
+            return Q(username=value)
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_groups()
+
+    ordering = filterset.get_fields()["username"]
+
+    entry = ordering.resolve_entry(QueryDict("username=jack52"))
+    assert entry == Entry(value="jack52", expression=Q(username="jack52"))
+
+    entry2 = ordering.resolve_entry(QueryDict("username=do_nothing"))
+    assert entry2 == Entry(value="do_nothing", expression=notset)
 
 
 def test_filter_resolve() -> None:
