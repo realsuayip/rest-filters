@@ -297,7 +297,7 @@ def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> No
         first_name = Filter(serializers.CharField(required=False))
         last_name = Filter(serializers.CharField(required=False))
         created = Filter(
-            serializers.DateTimeField(),
+            serializers.DateTimeField(default_timezone=zoneinfo.ZoneInfo(key="UTC")),
             children=[Filter(param="gte", lookup="gte")],
         )
 
@@ -336,7 +336,7 @@ def test_constraint_gives_access_to_all_fields() -> None:
         a = Filter(serializers.CharField(required=False))
         b = Filter(serializers.IntegerField())
         created = Filter(
-            serializers.DateTimeField(),
+            serializers.DateTimeField(default_timezone=zoneinfo.ZoneInfo("UTC")),
             children=[Filter(param="gte", lookup="gte")],
         )
 

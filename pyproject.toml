@@ -1,22 +1,34 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.7.21,<0.8.0"]
+build-backend = "uv_build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["rest_filters"]
 
 [project]
 name = "rest-filters"
-version = "0.1.0"
-requires-python = ">=3.11"
+version = "0.2.0"
+requires-python = ">=3.10"
 dependencies = [
-    "django>=3.2",
-    "djangorestframework>=3.14.0",
+    "django>=4.2",
+    "djangorestframework>=3.14",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/realsuayip/rest-filters"
 "Bug Tracker" = "https://github.com/realsuayip/rest-filters/issues"
+
+[dependency-groups]
+dev = [
+    "django-stubs",
+    "djangorestframework-stubs",
+    "drf-spectacular",
+    "pytest",
+    "pytest-cov",
+    "pytest-django",
+    "tox",
+    "tox-uv",
+]
 
 [tool.ruff]
 target-version = "py312"
@@ -68,6 +80,7 @@ DJANGO_SETTINGS_MODULE = "tests.settings"
 testpaths = ["tests"]
 pythonpath = ". rest_filters"
 addopts = """
+    -Wall
     --no-migrations
     --tb=short
     --cov=rest_filters
@@ -87,3 +100,20 @@ exclude_also = [
 
 [tool.coverage.html]
 show_contexts = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist =
+    py{py310,311,312,313}-django{42,52}
+
+[testenv]
+deps =
+    django42: django>=4.2,<5
+    django52: django>=5.2,<6
+    pytest
+    pytest-cov
+    pytest-django
+commands =
+    pytest
+"""
