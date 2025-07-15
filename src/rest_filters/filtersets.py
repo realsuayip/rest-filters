@@ -99,8 +99,8 @@ class FilterSet(Generic[_MT_co]):
         self.queryset = queryset
         self.view = view
 
-        self.fields = copy.deepcopy(self.compiled_fields)
-        self.constraints = copy.deepcopy(self.options.constraints)
+        self._fields = copy.deepcopy(self.compiled_fields)
+        self._constraints = copy.deepcopy(self.options.constraints)
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         meta_fields = (
@@ -266,7 +266,7 @@ class FilterSet(Generic[_MT_co]):
         return queryset
 
     def get_fields(self) -> dict[str, Filter]:
-        return self.fields
+        return self._fields
 
     def get_default(self, param: str, default: Any) -> Any:
         return default
@@ -285,7 +285,7 @@ class FilterSet(Generic[_MT_co]):
         return serializer.run_validation(value)
 
     def get_constraints(self) -> Sequence[Constraint]:
-        return self.constraints
+        return self._constraints
 
     def handle_constraints(self, valuedict: dict[str, Any]) -> dict[str, Any]:
         errors: dict[str, Any] = {}

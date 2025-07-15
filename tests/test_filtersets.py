@@ -266,7 +266,7 @@ def test_filterset_init_copies_compiled_fields() -> None:
     compiled = SomeFilterSet.compiled_fields["username"]
 
     instance = get_filterset_instance(SomeFilterSet)
-    fields = instance.fields
+    fields = instance._fields
     copied = fields["username"]
 
     assert copied is not compiled
@@ -284,7 +284,7 @@ def test_filterset_init_copies_constraints() -> None:
     compiled = SomeFilterSet.options.constraints[0]
 
     instance = get_filterset_instance(SomeFilterSet)
-    constraints = instance.constraints
+    constraints = instance._constraints
     copied = constraints[0]
 
     assert copied is not compiled
@@ -738,7 +738,7 @@ def test_user_overrideable_method_defaults() -> None:
 
     # .get_constraints()
     constraints = instance.get_constraints()
-    assert constraints is instance.constraints
+    assert constraints is instance._constraints
 
     # .run_validation()
     class MyField(serializers.IntegerField):
