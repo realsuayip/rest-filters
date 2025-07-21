@@ -29,6 +29,11 @@ dev = [
     "tox",
     "tox-uv",
 ]
+docs = [
+    "docstrfmt",
+    "furo",
+    "sphinx",
+]
 
 [tool.ruff]
 target-version = "py312"
