@@ -2,9 +2,6 @@
 requires = ["uv_build>=0.7.21,<0.8.0"]
 build-backend = "uv_build"
 
-[tool.hatch.build.targets.wheel]
-packages = ["rest_filters"]
-
 [project]
 name = "rest-filters"
 version = "0.2.0"
