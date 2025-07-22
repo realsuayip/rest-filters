@@ -23,7 +23,7 @@ Highlight features
 can enforce strict constraints on your parameters, how they are provided and
 how they interact with each other. Here are some highlight features:
 
-- **Leverage serializer fields to parse query parameters.** Existing serializer
+- **Use serializer fields to parse query parameters.** Existing serializer
   fields used in request bodies can be reused directly, ensuring consistency in
   parsing logic and validation error messages. This approach also simplifies
   the implementation of custom fields by utilizing familiar serializer API.
