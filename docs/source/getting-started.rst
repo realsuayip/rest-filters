@@ -34,6 +34,9 @@ example throughout this guide. Assume the following User model:
 
         created = models.DateTimeField(auto_now_add=True)
 
+Setting filter backend
+----------------------
+
 Next, we are going to define our view. In this example, we are using a
 ``ViewSet`` to list users:
 
@@ -57,6 +60,9 @@ usual, you can set this value globally in REST framework using
     REST_FRAMEWORK = {
         "DEFAULT_FILTER_BACKENDS": ["rest_filters.FilterBackend"],
     }
+
+Creating your FilterSet
+-----------------------
 
 Now we need to define our ``FilterSet`` class. To begin, we will create a
 simple filterset that allows searching users by username:
@@ -86,6 +92,9 @@ This filterset declaration implies few things:
     ``FilterSet[User]`` uses the model class as a type variable solely for
     typing purposes. It does not automatically generate filters or fields based
     on the model definition.
+
+Using FilterSet in views
+------------------------
 
 Let's plug this FilterSet into our view. There are two ways to do this. The
 first method is using ``filterset_class`` attribute, just like
@@ -154,6 +163,9 @@ should also get some errors messages if we get something wrong, for example:
         ]
     }
 
+Using child filters
+-------------------
+
 Now, let’s implement a more advanced filter. Specifically, we want to search
 users based on their companies—by both company ID and company name.
 
@@ -207,6 +219,9 @@ we can use namespace filters:
 
 This filter exposes two parameters: ``company.id`` and ``company.name``.
 
+Using constraints
+-----------------
+
 Depending on your API design, it might not be desirable to make these filters
 available at the same time. We might force users to only provide id or name
 using a built-in constraint:
@@ -254,6 +269,9 @@ are used at the same time:
              "Following fields are mutually exclusive, you may only provide one of them: \"company.id\", \"company.name\""
          ]
      }
+
+Using Filter groups
+-------------------
 
 Up to now, all the filters we used chained ``filter()`` calls on QuerySets,
 since we did not specify any groups. Let's see an example where using a group
@@ -309,6 +327,9 @@ Doing this result in a query like this:
      INNER JOIN "auth_company"
         ON ("auth_user_following_companies"."company_id" = "auth_company"."id")
      WHERE ("auth_company"."name" = 'google' AND "auth_company"."address" = 'california')
+
+Final FilterSet definition
+--------------------------
 
 Here is the final ``FilterSet`` with some minor additions for reference:
 

@@ -7,7 +7,16 @@ Introduction
     :caption: User Guide
 
     self
+    installation
     getting-started
+
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+    :caption: Recipes
+
+    recipes/using-constraints
+    recipes/default-values
 
 What is rest-filters?
 =====================
