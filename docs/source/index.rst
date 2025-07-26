@@ -18,6 +18,7 @@ Introduction
     recipes/using-constraints
     recipes/default-values
     recipes/using-child-filters
+    recipes/using-groups
 
 What is rest-filters?
 =====================
