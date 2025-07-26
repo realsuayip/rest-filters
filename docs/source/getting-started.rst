@@ -379,8 +379,7 @@ Here is the final ``FilterSet`` with some minor additions for reference:
                 Filter(
                     serializers.CharField(required=False),
                     param="address",
-                    field="following_companies__address",
-                    lookup="icontains",
+                    lookup="address__icontains",
                 ),
             ],
         )
