@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from django.utils.translation import gettext
+from django.utils.translation import gettext, ngettext
 
 from rest_framework import serializers
 from rest_framework.settings import api_settings
@@ -34,7 +35,7 @@ class Constraint:
         self.kwargs = kwargs
         self.filterset: FilterSet[Any] | None = None
 
-    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         message = self._message or gettext(
             "Request failed to meet constraint: %(constraint)s"
         ) % {"constraint": self.__class__.__name__}
@@ -72,9 +73,9 @@ class MutuallyExclusive(Constraint):
         self.fields = fields
         super().__init__(message=message, **kwargs)
 
-    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
-            return super().get_message(values)
+            return super().get_message(values, **kwargs)
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
@@ -106,9 +107,9 @@ class MutuallyInclusive(Constraint):
         self.fields = fields
         super().__init__(message=message, **kwargs)
 
-    def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
-            return super().get_message(values)
+            return super().get_message(values, **kwargs)
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
@@ -123,3 +124,44 @@ class MutuallyInclusive(Constraint):
         fields = [field in values for field in self.fields]
         if any(fields) and not all(fields):
             raise serializers.ValidationError(self.get_message(values))
+
+
+class Dependency(Constraint):
+    def __init__(
+        self,
+        *,
+        message: StrOrPromise = "",
+        fields: Sequence[str],
+        depends_on: Sequence[str],
+        **kwargs: Any,
+    ) -> None:
+        self.fields = fields
+        self.depends_on = depends_on
+        super().__init__(message=message, **kwargs)
+
+    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if self._message:
+            return super().get_message(values, **kwargs)
+        missing = kwargs["missing"]
+        message = {}
+        for field, dependencies in missing.items():
+            message[field] = [
+                ngettext(
+                    "This query parameter also requires the following"
+                    " parameter to be present: %(params)s",
+                    "This query parameter also requires following"
+                    " parameters to be present: %(params)s",
+                    len(dependencies),
+                )
+                % {"params": ", ".join(f'"{field}"' for field in dependencies)}
+            ]
+        return message
+
+    def check(self, values: dict[str, Any]) -> None:
+        missing = defaultdict(list)
+        for field in self.fields:
+            for dependency in self.depends_on:
+                if field in values and dependency not in values:
+                    missing[field].append(dependency)
+        if missing:
+            raise serializers.ValidationError(self.get_message(values, missing=missing))

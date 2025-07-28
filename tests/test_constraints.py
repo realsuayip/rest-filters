@@ -351,12 +351,8 @@ def test_constraint_gives_access_to_all_fields() -> None:
     }
 
     class MyConstraint(Constraint):
-        def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
+        def check(self, values: dict[str, Any]) -> None:
             assert values == expected
-
-        def check(self, values: dict[str, Any]) -> bool:
-            assert values == expected
-            return True
 
     class SomeFilterSet(FilterSet[Any]):
         a = Filter(serializers.CharField(required=False))
