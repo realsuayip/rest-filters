@@ -15,6 +15,7 @@ from django.utils.translation import gettext
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
+from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from rest_filters.conf import app_settings
@@ -293,9 +294,12 @@ class FilterSet(Generic[_MT_co]):
         for constraint in constraints:
             constraint.filterset = self
             try:
-                if not constraint.check(valuedict):
-                    message = constraint.get_message(valuedict)
-                    merge_errors(errors, message)
+                constraint.check(valuedict)
+            except serializers.ValidationError as err:
+                detail = err.detail
+                if not isinstance(detail, dict):
+                    detail = {api_settings.NON_FIELD_ERRORS_KEY: detail}
+                merge_errors(errors, detail)
             finally:
                 constraint.filterset = None
         return errors

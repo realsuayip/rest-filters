@@ -950,10 +950,7 @@ def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> Non
 def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
     class CustomConstraint(Constraint):
         def check(self, values: dict[str, Any]) -> bool:
-            return False
-
-        def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
-            return {"first_name": ["Constraint failed"]}
+            raise serializers.ValidationError({"first_name": ["Constraint failed"]})
 
     class SomeFilterSet(FilterSet[Any]):
         first_name = Filter(serializers.CharField())

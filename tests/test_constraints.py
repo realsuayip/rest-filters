@@ -49,9 +49,15 @@ def test_handle_constraints() -> None:
 
 def test_handle_constraints_sets_filterset_instance() -> None:
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> bool:
-            val = values["age"]
-            return val > self.filterset.get_magic_value()
+        def check(self, values: dict[str, Any]) -> None:
+            if values["age"] < self.filterset.get_magic_value():
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": [
+                            "Request failed to meet constraint: MyConstraint"
+                        ]
+                    }
+                )
 
     class SomeFilterSet(FilterSet[Any]):
         age = Filter(serializers.IntegerField())
@@ -76,7 +82,16 @@ def test_handle_constraints_sets_filterset_instance() -> None:
 def test_handle_constraints_case_custom_message() -> None:
     class MyConstraint(Constraint):
         def check(self, values: dict[str, Any]) -> bool:
-            return False
+            if values["age"] == 1:
+                raise serializers.ValidationError("something went wrong")
+            if values["age"] == 2:
+                raise serializers.ValidationError(["something went wrong"])
+            if values["age"] == 3:
+                raise serializers.ValidationError(
+                    {"non_field_errors": ["something went wrong"]}
+                )
+            if values["age"] == 4:
+                raise serializers.ValidationError({"custom": ["something went wrong"]})
 
     class SomeFilterSet(FilterSet[Any]):
         age = Filter(serializers.IntegerField())
@@ -87,8 +102,21 @@ def test_handle_constraints_case_custom_message() -> None:
             ]
 
     instance = get_filterset_instance(SomeFilterSet)
-    errors = instance.handle_constraints({"age": 10})
-    assert errors == {"non_field_errors": ["Something went wrong"]}
+    (
+        errors1,
+        errors2,
+        errors3,
+        errors4,
+    ) = (
+        instance.handle_constraints({"age": 1}),
+        instance.handle_constraints({"age": 2}),
+        instance.handle_constraints({"age": 3}),
+        instance.handle_constraints({"age": 4}),
+    )
+    assert (
+        errors1 == errors2 == errors3 == {"non_field_errors": ["something went wrong"]}
+    )
+    assert errors4 == {"custom": ["something went wrong"]}
 
 
 def test_method_constraint() -> None:
@@ -97,14 +125,12 @@ def test_method_constraint() -> None:
 
         class Meta:
             constraints = [
-                MethodConstraint(
-                    method="check_age_constraint",
-                    message="Age must be greater than 10",
-                ),
+                MethodConstraint(method="check_age_constraint"),
             ]
 
         def check_age_constraint(self, values: dict[str, Any]) -> bool:
-            return values["age"] > 10
+            if values["age"] < 10:
+                raise serializers.ValidationError("Age must be greater than 10")
 
     instance = get_filterset_instance(SomeFilterSet)
     errors1 = instance.handle_constraints({"age": 9})
@@ -348,22 +374,3 @@ def test_constraint_gives_access_to_all_fields() -> None:
         query="created=2025-01-02&created.gte=2025-01-01&a=hello&b=64",
     )
     instance.get_groups()
-
-
-def test_constraint_get_message_override() -> None:
-    class MyConstraint(Constraint):
-        def get_message(self, values: dict[str, Any]) -> dict[str, Any]:
-            return {"non_field_errors": values["message"]}
-
-        def check(self, values: dict[str, Any]) -> bool:
-            return False
-
-    class SomeFilterSet(FilterSet[Any]):
-        message = Filter(serializers.CharField())
-
-        class Meta:
-            constraints = [MyConstraint()]
-
-    instance = get_filterset_instance(SomeFilterSet)
-    errors = instance.handle_constraints({"message": "hello"})
-    assert errors == {"non_field_errors": "hello"}

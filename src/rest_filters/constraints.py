@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.utils.translation import gettext
 
+from rest_framework import serializers
 from rest_framework.settings import api_settings
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ class Constraint:
         ) % {"constraint": self.__class__.__name__}
         return {api_settings.NON_FIELD_ERRORS_KEY: [message]}
 
-    def check(self, values: dict[str, Any]) -> bool:
+    def check(self, values: dict[str, Any]) -> None:
         raise NotImplementedError
 
 
@@ -54,9 +55,9 @@ class MethodConstraint(Constraint):
         self.method = method
         super().__init__(message=message, **kwargs)
 
-    def check(self, values: dict[str, Any]) -> bool:
+    def check(self, values: dict[str, Any]) -> None:
         assert self.filterset, "Missing filterset for constraint"
-        return getattr(self.filterset, self.method)(values)  # type: ignore[no-any-return]
+        getattr(self.filterset, self.method)(values)
 
 
 class MutuallyExclusive(Constraint):
@@ -88,8 +89,9 @@ class MutuallyExclusive(Constraint):
             ]
         }
 
-    def check(self, values: dict[str, Any]) -> bool:
-        return sum(field in values for field in self.fields) <= 1
+    def check(self, values: dict[str, Any]) -> None:
+        if sum(field in values for field in self.fields) > 1:
+            raise serializers.ValidationError(self.get_message(values))
 
 
 class MutuallyInclusive(Constraint):
@@ -117,6 +119,7 @@ class MutuallyInclusive(Constraint):
             ]
         }
 
-    def check(self, values: dict[str, Any]) -> bool:
+    def check(self, values: dict[str, Any]) -> None:
         fields = [field in values for field in self.fields]
-        return all(fields) if any(fields) else True
+        if any(fields) and not all(fields):
+            raise serializers.ValidationError(self.get_message(values))
