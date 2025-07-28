@@ -50,7 +50,7 @@ def test_handle_constraints() -> None:
 def test_handle_constraints_sets_filterset_instance() -> None:
     class MyConstraint(Constraint):
         def check(self, values: dict[str, Any]) -> None:
-            if values["age"] < self.filterset.get_magic_value():
+            if values["age"] < self.filterset.get_magic_value():  # type: ignore[union-attr]
                 raise serializers.ValidationError(
                     {
                         "non_field_errors": [
@@ -81,7 +81,7 @@ def test_handle_constraints_sets_filterset_instance() -> None:
 
 def test_handle_constraints_case_custom_message() -> None:
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> bool:
+        def check(self, values: dict[str, Any]) -> None:
             if values["age"] == 1:
                 raise serializers.ValidationError("something went wrong")
             if values["age"] == 2:
@@ -128,7 +128,7 @@ def test_method_constraint() -> None:
                 MethodConstraint(method="check_age_constraint"),
             ]
 
-        def check_age_constraint(self, values: dict[str, Any]) -> bool:
+        def check_age_constraint(self, values: dict[str, Any]) -> None:
             if values["age"] < 10:
                 raise serializers.ValidationError("Age must be greater than 10")
 
@@ -308,7 +308,7 @@ def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> No
     # 3. If a field appear in query parameter, and has no field level
     # validation error, it should appear as serialized in values.
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> bool:
+        def check(self, values: dict[str, Any]) -> None:
             with pytest.raises(KeyError):
                 values["first_name"]
             with pytest.raises(KeyError):
@@ -317,7 +317,6 @@ def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> No
             assert values["created.gte"] == datetime.datetime(
                 2025, 1, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo(key="UTC")
             )
-            return True
 
     class SomeFilterSet(FilterSet[Any]):
         first_name = Filter(serializers.CharField(required=False))

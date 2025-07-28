@@ -40,7 +40,7 @@ def test_filterset_options() -> None:
     assert isinstance(options, Options)
 
     assert options.fields == ("username",)
-    assert options.known_parameters == ("page", "page_size", "version")
+    assert tuple(options.known_parameters) == ("page", "page_size", "version")
     assert options.handle_unknown_parameters is True
     assert options.combinators == {"group": operator.or_}
     assert options.blank == "keep"
@@ -84,12 +84,12 @@ def test_filterset_options_partial_meta() -> None:
     assert isinstance(options, Options)
 
     assert options.fields is notset
-    assert options.known_parameters == ("page", "page_size")
+    assert tuple(options.known_parameters) == ("page", "page_size")
     assert options.combinators == {}
     assert options.constraints == []
 
 
-def test_filterset_compiled_fields_default():
+def test_filterset_compiled_fields_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(min_length=3))
         created = Filter(
@@ -115,7 +115,7 @@ def test_filterset_compiled_fields_default():
     }
 
 
-def test_filterset_compiled_fields_case_omit():
+def test_filterset_compiled_fields_case_omit() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(min_length=3))
         created = Filter(
@@ -949,7 +949,7 @@ def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> Non
 
 def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
     class CustomConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> bool:
+        def check(self, values: dict[str, Any]) -> None:
             raise serializers.ValidationError({"first_name": ["Constraint failed"]})
 
     class SomeFilterSet(FilterSet[Any]):

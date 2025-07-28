@@ -41,7 +41,7 @@ def test_filter_backend_discover_from_get_filterset_class() -> None:
         queryset = User.objects.all()
         filter_backends = [FilterBackend]
 
-        def get_filterset_class(self) -> FilterSet[User]:
+        def get_filterset_class(self) -> type[FilterSet[User]]:
             return SomeFilterSet
 
     factory = APIRequestFactory()

@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 from unittest.mock import MagicMock, call
 
 from django.db.models import F, Q
@@ -357,7 +357,7 @@ def test_filter_resolve_serializer() -> None:
 
     assert resolved1 == resolved2
     assert not f.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
     for resolved in [resolved1, resolved2]:
         assert resolved != f
@@ -377,9 +377,7 @@ def test_filter_resolve_serializer_dynamic_only() -> None:
             ],
         )
 
-        def get_serializer(
-            self, param: str, serializer: AnyField | None
-        ) -> AnyField | None:
+        def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
             if param in ("username", "username.icontains"):
                 return f
             return super().get_serializer(param, serializer)
@@ -417,9 +415,7 @@ def test_filter_resolve_serializer_dynamic_failed_to_resolve_case_nested() -> No
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(children=[Filter(param="icontains", lookup="icontains")])
 
-        def get_serializer(
-            self, param: str, serializer: AnyField | None
-        ) -> AnyField | None:
+        def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
             if param == "username":
                 return serializers.CharField()
             return super().get_serializer(param, serializer)
@@ -441,9 +437,7 @@ def test_filter_resolve_serializer_replacement() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(current)
 
-        def get_serializer(
-            self, param: str, serializer: AnyField | None
-        ) -> AnyField | None:
+        def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
             return replacement
 
     filterset = get_filterset_instance(SomeFilterSet)
@@ -462,16 +456,15 @@ def test_filter_resolve_serializer_replacement() -> None:
 
     assert not current.context
     assert not replacement.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_resolve_serializer_replacement_attr_changed() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(required=False))
 
-        def get_serializer(
-            self, param: str, serializer: AnyField | None
-        ) -> AnyField | None:
+        def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
+            serializer = cast(serializers.CharField, serializer)
             serializer.max_length = 25
             return serializer
 
@@ -479,13 +472,13 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
 
     field = filterset.get_fields()["username"]
     field._filterset = filterset
-    resolved = field.resolve_serializer()
+    resolved = cast(serializers.CharField, field.resolve_serializer())
 
     assert resolved == field._serializer
     assert resolved.context
     assert resolved.max_length == 25
 
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
@@ -494,10 +487,8 @@ def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(f)
 
-        def get_serializer(
-            self, param: str, serializer: AnyField | None
-        ) -> AnyField | None:
-            return None
+        def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
+            return None  # type: ignore[return-value]
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -507,7 +498,7 @@ def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
     ):
         filterset.filter_queryset()
     assert not f.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context
+    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_run_validation() -> None:
@@ -515,7 +506,7 @@ def test_filter_run_validation() -> None:
         name = Filter(serializers.CharField())
         username = Filter(serializers.CharField())
 
-        def run_validation(self, value: str, serializer: AnyField, param: str) -> Any:
+        def run_validation(self, value: str, serializer: AnyField, param: str) -> Any:  # type: ignore[override]
             if param == "name":
                 return super().run_validation(value, serializer, param)
             return value.replace("1", "X")
@@ -539,7 +530,7 @@ def test_filter_parse_value() -> None:
 
     username = filterset.get_fields()["username"]
     username._filterset = filterset
-    username.run_validation = MagicMock()
+    username.run_validation = MagicMock()  # type: ignore[method-assign]
 
     username.parse_value("123")
     username.parse_value(empty)
@@ -562,7 +553,7 @@ def test_filter_parse_value_case_blank_keep() -> None:
 
     username = filterset.get_fields()["username"]
     username._filterset = filterset
-    username.run_validation = MagicMock()
+    username.run_validation = MagicMock()  # type: ignore[method-assign]
 
     username.parse_value("")
     username.run_validation.assert_called_once_with("", username._serializer)
@@ -576,7 +567,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
 
     created = filterset.get_fields()["created"]
     created._filterset = filterset
-    created.run_validation = MagicMock()
+    created.run_validation = MagicMock()  # type: ignore[method-assign]
 
     created.parse_value(" 2017-01-01\t\n\r")
     created.run_validation.assert_called_once_with("2017-01-01", created._serializer)
@@ -740,7 +731,7 @@ def test_filter_resolve_entry() -> None:
 
     username = filterset.get_fields()["username"]
     username._filterset = filterset
-    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
+    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)  # type: ignore[method-assign]
 
     entry = username.resolve_entry(QueryDict("username=hello"))
     username.resolve_entry_attrs.assert_called_once_with("hello")
@@ -782,7 +773,7 @@ def test_filter_resolve_entry_case_method() -> None:
     fields = filterset.get_fields()
     username, created = fields["username"], fields["created"]
     username._filterset = created._filterset = filterset
-    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)
+    username.resolve_entry_attrs = MagicMock(side_effect=username.resolve_entry_attrs)  # type: ignore[method-assign]
 
     username_entry = username.resolve_entry(query)
     username.resolve_entry_attrs.assert_not_called()
@@ -929,7 +920,7 @@ def test_filter_resolve() -> None:
     }
 
 
-def test_filter_get_all_children():
+def test_filter_get_all_children() -> None:
     f = Filter(
         serializers.IntegerField(),
         param="company",
