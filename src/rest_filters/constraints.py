@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Constraint",
+    "Dependency",
     "MethodConstraint",
     "MutuallyExclusive",
     "MutuallyInclusive",

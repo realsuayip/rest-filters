@@ -10,6 +10,7 @@ import pytest
 from rest_filters import Filter, FilterSet
 from rest_filters.constraints import (
     Constraint,
+    Dependency,
     MethodConstraint,
     MutuallyExclusive,
     MutuallyInclusive,
@@ -369,3 +370,282 @@ def test_constraint_gives_access_to_all_fields() -> None:
         query="created=2025-01-02&created.gte=2025-01-01&a=hello&b=64",
     )
     instance.get_groups()
+
+
+def test_dependency_constraint() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        search = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(param="field", noop=True),
+            ],
+        )
+
+        class Meta:
+            constraints = [
+                Dependency(
+                    fields=["search.field"],
+                    depends_on=["search"],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+
+    errors1 = instance.handle_constraints({"search.field": "name"})
+    errors2 = instance.handle_constraints({"search": "something"})
+    errors3 = instance.handle_constraints(
+        {
+            "search": "something",
+            "search.field": "name",
+        }
+    )
+    errors4 = instance.handle_constraints({})
+    assert errors1 == {
+        "search.field": [
+            "This query parameter also requires the following"
+            ' parameter to be present: "search"'
+        ]
+    }
+    assert errors2 == errors3 == errors4 == {}
+
+
+def test_dependency_constraint_case_multiple_fields() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        search = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(param="field", noop=True),
+                Filter(param="lookup", noop=True),
+            ],
+        )
+
+        class Meta:
+            constraints = [
+                Dependency(
+                    fields=["search.field", "search.lookup"],
+                    depends_on=["search"],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+
+    errors1 = instance.handle_constraints({"search.field": "name"})
+    errors2 = instance.handle_constraints({"search.lookup": "icontains"})
+    errors3 = instance.handle_constraints(
+        {
+            "search.field": "name",
+            "search.lookup": "icontains",
+        }
+    )
+    errors4 = instance.handle_constraints({"search": "something"})
+    errors5 = instance.handle_constraints(
+        {
+            "search": "something",
+            "search.field": "name",
+            "search.lookup": "icontains",
+        }
+    )
+    errors6 = instance.handle_constraints({})
+    assert errors1 == {
+        "search.field": [
+            "This query parameter also requires the following"
+            ' parameter to be present: "search"',
+        ]
+    }
+    assert errors2 == {
+        "search.lookup": [
+            "This query parameter also requires the following"
+            ' parameter to be present: "search"',
+        ]
+    }
+    assert errors3 == {
+        "search.field": [
+            "This query parameter also requires the following"
+            ' parameter to be present: "search"',
+        ],
+        "search.lookup": [
+            "This query parameter also requires the following"
+            ' parameter to be present: "search"',
+        ],
+    }
+    assert errors4 == errors5 == errors6 == {}
+
+
+def test_dependency_constraint_case_multiple_depends_on() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        search = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(param="field", noop=True),
+                Filter(param="lookup", noop=True),
+            ],
+        )
+
+        class Meta:
+            constraints = [
+                Dependency(
+                    fields=["search"],
+                    depends_on=["search.lookup", "search.field"],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+
+    errors1 = instance.handle_constraints({"search": "something"})
+    errors2 = instance.handle_constraints(
+        {
+            "search": "something",
+            "search.field": "name",
+        }
+    )
+    errors3 = instance.handle_constraints(
+        {
+            "search": "something",
+            "search.field": "name",
+            "search.lookup": "icontains",
+        }
+    )
+    errors4 = instance.handle_constraints({})
+    assert errors1 == {
+        "search": [
+            "This query parameter also requires following parameters"
+            ' to be present: "search.lookup", "search.field"',
+        ]
+    }
+    assert errors2 == {
+        "search": [
+            "This query parameter also requires the following parameter"
+            ' to be present: "search.lookup"',
+        ]
+    }
+    assert errors3 == errors4 == {}
+
+
+def test_dependency_constraint_multiple_depends_with_multiple_fields() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        created = Filter(
+            serializers.DateField(),
+            namespace=True,
+            children=[
+                Filter(lookup="gte"),
+                Filter(lookup="lte"),
+                Filter(
+                    serializers.CharField(),
+                    param="timezone",
+                    noop=True,
+                ),
+                Filter(
+                    serializers.CharField(),
+                    param="format",
+                    noop=True,
+                ),
+            ],
+        )
+
+        class Meta:
+            constraints = [
+                Dependency(
+                    fields=["created.gte", "created.lte"],
+                    depends_on=["created.timezone", "created.format"],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    errors1 = instance.handle_constraints({"created.gte": "2024-01-01"})
+    errors2 = instance.handle_constraints({"created.lte": "2024-01-01"})
+    errors3 = instance.handle_constraints(
+        {
+            "created.gte": "2024-01-01",
+            "created.lte": "2025-01-01",
+        },
+    )
+    errors4 = instance.handle_constraints(
+        {
+            "created.gte": "2024-01-01",
+            "created.lte": "2025-01-01",
+            "created.timezone": "UTC",
+        },
+    )
+    errors5 = instance.handle_constraints(
+        {
+            "created.gte": "2024-01-01",
+            "created.lte": "2025-01-01",
+            "created.format": "YYYY-MM-DD",
+        },
+    )
+    errors6 = instance.handle_constraints(
+        {
+            "created.gte": "2024-01-01",
+            "created.lte": "2025-01-01",
+            "created.timezone": "UTC",
+            "created.format": "YYYY-MM-DD",
+        },
+    )
+    errors7 = instance.handle_constraints({})
+
+    assert errors1 == {
+        "created.gte": [
+            "This query parameter also requires following parameters"
+            ' to be present: "created.timezone", "created.format"'
+        ]
+    }
+    assert errors2 == {
+        "created.lte": [
+            "This query parameter also requires following parameters"
+            ' to be present: "created.timezone", "created.format"'
+        ]
+    }
+    assert errors3 == {
+        "created.gte": [
+            "This query parameter also requires following parameters"
+            ' to be present: "created.timezone", "created.format"'
+        ],
+        "created.lte": [
+            "This query parameter also requires following parameters"
+            ' to be present: "created.timezone", "created.format"'
+        ],
+    }
+    assert errors4 == {
+        "created.gte": [
+            "This query parameter also requires the following parameter"
+            ' to be present: "created.format"'
+        ],
+        "created.lte": [
+            "This query parameter also requires the following parameter"
+            ' to be present: "created.format"'
+        ],
+    }
+    assert errors5 == {
+        "created.gte": [
+            "This query parameter also requires the following parameter"
+            ' to be present: "created.timezone"'
+        ],
+        "created.lte": [
+            "This query parameter also requires the following parameter"
+            ' to be present: "created.timezone"'
+        ],
+    }
+    assert errors6 == errors7 == {}
+
+
+def test_dependency_constraint_custom_message() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        page = Filter(serializers.IntegerField())
+        page_size = Filter(serializers.IntegerField())
+
+        class Meta:
+            constraints = [
+                Dependency(
+                    message="Page number requires page size to be specified.",
+                    fields=["page"],
+                    depends_on=["page_size"],
+                ),
+            ]
+
+    instance = get_filterset_instance(SomeFilterSet)
+    errors = instance.handle_constraints({"page": 2})
+    assert errors == {
+        "non_field_errors": [
+            "Page number requires page size to be specified.",
+        ]
+    }
