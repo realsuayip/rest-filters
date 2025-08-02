@@ -1,4 +1,4 @@
-Using Constraints
+Using constraints
 =================
 
 Constraints allow you to establish relationships between your filters and
@@ -22,9 +22,11 @@ For example:
 
     from rest_filters.constraints import MutuallyExclusive
 
-    constraints = [
-        MutuallyExclusive(fields=["id", "search"]),
-    ]
+
+    class Meta:
+        constraints = [
+            MutuallyExclusive(fields=["id", "search"]),
+        ]
 
 Won't allow specifying ``id`` and ``search`` query parameters at the same time.
 
@@ -40,9 +42,11 @@ For example:
 
     from rest_filters.constraints import MutuallyInclusive
 
-    constraints = [
-        MutuallyInclusive(fields=["start_date", "end_date"]),
-    ]
+
+    class Meta:
+        constraints = [
+            MutuallyInclusive(fields=["start_date", "end_date"]),
+        ]
 
 Won't allow specifying ``start_date`` and ``end_date`` in isolation, they must
 either appear at the same time or not appear at all.
@@ -58,16 +62,17 @@ For example:
 
     from rest_filters.constraints import Dependency
 
-    constraints = [
-        Dependency(
-            fields=["search.fields"],
-            depends_on=["search"],
-        ),
-    ]
+    class Meta:
+        constraints = [
+            Dependency(
+                fields=["search.fields"],
+                depends_on=["search"],
+            ),
+        ]
 
-In this example, using ``search.fields`` without ``search`` would lead to an
-error. Notice that this behavior cannot be achieved using ``MutuallyInclusive``
-since ``search`` can be used without having to specify ``search.fields``.
+Won't allow specifying ``search.fields`` without providing ``search``. Notice
+that this behavior cannot be achieved using ``MutuallyInclusive`` since
+``search`` can be used without having to specify ``search.fields``.
 
 Each dependency can include multiple fields with multiple dependencies. Each
 member of the ``fields`` will independently be dependent on fields in
@@ -123,6 +128,12 @@ While creating custom constraints, we need to keep some things in mind:
    ``empty`` in any field ensures that a ``ValidationError`` will be raised,
    regardless of the outcome of constraint evaluation (you may or may not
    decide to add constraint error to the response body).
+
+.. note::
+
+    And ``empty`` value in this context basically means "the field is here, but
+    value is invalid". This is useful since some constraints do not care about
+    the value itself but the absence/presence of it.
 
 Creating a custom constraint
 ----------------------------

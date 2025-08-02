@@ -106,3 +106,6 @@ You can go further beyond, by overriding ``get_group_entry`` method in your
 FilterSet, which will provide you with each of the filter expressions for given
 group. You may then arbitrarily combine them with whatever logic you have in
 your mind.
+
+In the next section, we will use this functionality to implement an advanced
+search filter.

@@ -15,12 +15,12 @@ Introduction
     :maxdepth: 2
     :caption: Recipes
 
-    recipes/using-constraints
     recipes/default-values
+    recipes/using-constraints
     recipes/using-child-filters
     recipes/using-groups
-    recipes/implementing-search-filter
-    recipes/implementing-order-filter
+    recipes/search-filters
+    recipes/ordering-filters
 
 What is rest-filters?
 =====================

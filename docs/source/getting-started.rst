@@ -167,7 +167,7 @@ Using child filters
 -------------------
 
 Now, let’s implement a more advanced filter. Specifically, we want to search
-users based on their companies—by both company ID and company name.
+users based on their companies, by both company ID and company name.
 
 .. code-block:: python
 

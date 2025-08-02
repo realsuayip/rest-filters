@@ -1,5 +1,5 @@
-Implementing a search filter
-============================
+Search filters
+==============
 
 A query parameter solely reserved for search functionality is common in
 applications. Generally speaking, this filter will require us performing
