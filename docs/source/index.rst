@@ -19,6 +19,7 @@ Introduction
     recipes/default-values
     recipes/using-child-filters
     recipes/using-groups
+    recipes/implementing-search-filter
 
 What is rest-filters?
 =====================
