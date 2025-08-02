@@ -8,7 +8,7 @@ Constraints are created by subclassing ``rest_filters.constraints.Constraint``,
 and can be provided as a list of constraint instances in the ``constraints``
 attribute of the ``Meta`` class within the ``FilterSet``.
 
-There are 3 built-in constraints:
+There are 4 built-in constraints:
 
 ``MutuallyExclusive``
 ---------------------
@@ -46,6 +46,32 @@ For example:
 
 Won't allow specifying ``start_date`` and ``end_date`` in isolation, they must
 either appear at the same time or not appear at all.
+
+``Dependency``
+--------------
+
+This constraint establishes dependencies between fields:
+
+For example:
+
+.. code-block::
+
+    from rest_filters.constraints import Dependency
+
+    constraints = [
+        Dependency(
+            fields=["search.fields"],
+            depends_on=["search"],
+        ),
+    ]
+
+In this example, using ``search.fields`` without ``search`` would lead to an
+error. Notice that this behavior cannot be achieved using ``MutuallyInclusive``
+since ``search`` can be used without having to specify ``search.fields``.
+
+Each dependency can include multiple fields with multiple dependencies. Each
+member of the ``fields`` will independently be dependent on fields in
+``depends_on``.
 
 ``MethodConstraint``
 --------------------
@@ -103,13 +129,13 @@ Creating a custom constraint
 
 To create a custom constraint, you can subclass from
 ``rest_filters.constraints.Constraint``. You'll need to override the ``check``
-method which returns a boolean. You can also override ``get_message`` method to
-dynamically resolve the error message.
+method which raises ``ValidationError`` when the requirement fails.
 
 Here is the range example above, created as custom constraint:
 
 .. code-block:: python
 
+    from rest_framework.fields import empty
     from rest_filters.constraints import Constraint
 
 
@@ -120,5 +146,8 @@ Here is the range example above, created as custom constraint:
                 values.get("end_date", empty),
             )
             if (start is not empty) and (end is not empty):
-                return end - start <= timedelta(days=90)
-            return True
+                in_range = end - start <= timedelta(days=90)
+                if not in_range:
+                    raise serializers.ValidationError(
+                        "The date range cannot be greater than 90 days."
+                    )
