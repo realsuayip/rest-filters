@@ -803,7 +803,7 @@ def test_filter_resolve_entry_case_noop() -> None:
     ordering._filterset = filterset
 
     entry = ordering.resolve_entry(QueryDict("ordering=id"))
-    assert entry == Entry(value="id", expression=notset)
+    assert entry == Entry(value="id", expression=None)
 
 
 def test_filter_resolve_entry_case_noop_with_method() -> None:

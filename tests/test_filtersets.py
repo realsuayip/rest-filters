@@ -422,7 +422,7 @@ def test_filterset_add_to_queryset_case_noop() -> None:
     instance = get_filterset_instance(SomeFilterSet)
     queryset = instance.add_to_queryset(
         original,
-        Entry(value="hello", expression=notset),
+        Entry(value="hello", expression=None),
     )
     assert queryset is original
     assert "WHERE" not in str(queryset.query)
@@ -1002,15 +1002,15 @@ def test_get_groups_noop() -> None:
     assert groupdict == {
         "names": {
             "username": Entry(
-                group="names", aliases=None, value="hello", expression=notset
+                group="names", aliases=None, value="hello", expression=None
             ),
             "first_name": Entry(
-                group="names", aliases=None, value="john", expression=notset
+                group="names", aliases=None, value="john", expression=None
             ),
         },
         "chain": {
             "last_name": Entry(
-                group="chain", aliases=None, value="doe", expression=notset
+                group="chain", aliases=None, value="doe", expression=None
             )
         },
     }

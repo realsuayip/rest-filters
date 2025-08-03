@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
-from rest_filters.utils import AnyField, fill_q_template, notset
+from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
     from rest_framework.fields import _Empty
@@ -262,7 +262,7 @@ class Filter:
         except SkipField:
             return None
         if self.noop:
-            return Entry(group=self.get_group(), value=value, expression=notset)
+            return Entry(group=self.get_group(), value=value, expression=None)
         if self.method is not None:
             param = self.get_param_name()
             result = getattr(self.get_filterset(), self.method)(param, value)

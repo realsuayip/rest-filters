@@ -207,7 +207,7 @@ class FilterSet(Generic[_MT_co]):
     def add_to_queryset(
         self, queryset: QuerySet[_MT_co], entry: Entry
     ) -> QuerySet[_MT_co]:
-        if entry.expression is notset:
+        if entry.expression is None:
             return queryset
         if entry.aliases:
             queryset = queryset.alias(**entry.aliases)
@@ -226,12 +226,12 @@ class FilterSet(Generic[_MT_co]):
         expressions = [
             entry.expression
             for entry in entries.values()
-            if entry.expression is not notset
+            if entry.expression is not None
         ]
         if expressions:
             expression = functools.reduce(combinator, expressions)
         else:
-            expression = notset
+            expression = None
         return Entry(
             group=group,
             aliases=functools.reduce(
