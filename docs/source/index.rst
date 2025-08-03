@@ -20,6 +20,7 @@ Introduction
     recipes/using-child-filters
     recipes/using-groups
     recipes/search-filters
+    recipes/method-filters
     recipes/ordering-filters
 
 What is rest-filters?
