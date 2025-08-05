@@ -16,7 +16,7 @@ not filtering thanks to ``noop`` directive.
     You can use methods described here to also handle ``distinct()`` calls to
     your QuerySet, since distinct is not supported in filters.
 
-Here is an implementation typical ordering field:
+Here is an implementation of a typical ordering field:
 
 .. code-block:: python
 
@@ -50,15 +50,15 @@ In this example:
 1. We defined a ``CSVField`` with ``ChoiceField`` as child, containing the
    possible ordering values. This will allow specifying multiple ordering
    fields while validating choices.
-2. We set a default value as fallback in case user does not specify ordering.
+2. We set a default value as fallback in case users don't specify ordering.
 3. We marked ordering as ``noop=True`` since it won't affect the filtering of
    the QuerySet.
 4. We used ``get_queryset`` method to apply the ordering preference. Notice
    that ``values["ordering"]`` assumes value always being there, which is
-   guaranteed thanks to default fallback.
+   guaranteed by the ``default`` fallback.
 
 While this style of ordering is very common in Django apps, it is a bit cryptic
-and hard to read at glance. Instead we could opt-in for something more verbose,
+and hard to read at a glance. Instead we could opt for something more verbose,
 for example:
 
 .. code-block:: python
@@ -119,9 +119,9 @@ In this example:
 2. We used ``CSVField`` to accept multiple of these fields so that we can
    specify multiple ordering expression.
 3. In ``get_queryset`` we constructed relevant ``F()`` object from parsed parts
-   to do the actual filtering.
+   to do the actual ordering.
 
-This FilterSet will allowing ordering in these styles:
+This FilterSet will allow ordering in these styles:
 
 - ``?ordering=created``
 - ``?ordering=created:desc``

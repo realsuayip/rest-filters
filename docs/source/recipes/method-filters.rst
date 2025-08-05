@@ -1,8 +1,8 @@
 Method filters
 ==============
 
-Sometimes your filtering logic cannot be expressed in simple expressions or you
-may need to use request information to do some stuff.
+Sometimes your filtering logic cannot be expressed in simple expressions, or
+you may need to use request information to do some stuff.
 
 .. important::
 
@@ -90,7 +90,7 @@ relevant query parameter is missing.
     it. If you need to modify QuerySets based on query parameter values, you
     can later use ``get_queryset`` method on FilterSet instead.
 
-Here is an another example:
+Here is another example:
 
 .. code-block:: python
 

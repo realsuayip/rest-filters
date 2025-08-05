@@ -1,12 +1,12 @@
 Getting started
 ===============
 
-In this following mini-tutorial, we will learn how to make use of some
+In the following mini-tutorial, we will learn how to make use of some
 ``rest-filters`` features.
 
-To begin, we need a model on which to construct QuerySet objects. Since the
-User model is a common component in most applications, it will serve as the
-example throughout this guide. Assume the following User model:
+To begin, we need a model to construct QuerySet objects from. Since the User
+model is a common component in most applications, it will serve as our example
+throughout this guide. Assume the following User model:
 
 .. code-block:: python
 
@@ -76,16 +76,16 @@ simple filterset that allows searching users by username:
     class UserFilterSet(FilterSet[User]):
         username = Filter(serializers.CharField(min_length=2))
 
-This filterset declaration implies few things:
+This filterset declaration implies a few things:
 
 1. Since a field name is not specified, this filterset assumes ``username``
    field will be available during QuerySet filtering.
 2. Since no explicit parameter name is given, the querying will be done using
    ``username`` via API endpoint.
 3. Since only ``min_length`` argument is used, this field will be required and
-   a ``ValidationError`` will occur if users do not specify the query
-   parameter. This is due to serializer defaults, and can be changed by
-   providing ``required=False``
+   a ``ValidationError`` will be raised if users do not specify the query
+   parameter. This is due to serializer field defaults, and can be changed by
+   providing ``required=False``.
 
 .. note::
 
@@ -109,7 +109,7 @@ first method is using ``filterset_class`` attribute, just like
         filter_backends = [FilterBackend]
         filterset_class = UserFilterSet
 
-This method is not suitable if you are using both ``drf-filter`` and
+This method is not suitable if you are using both ``django-filter`` and
 ``rest-filters`` at the same time. Since they will both resolve to the same
 FilterSet class, one of them won't work.
 
@@ -128,10 +128,10 @@ a method called ``get_filterset_class`` like so:
             return UserFilterSet
 
 This method is more preferable since it also allows dynamic dispatch of
-FilterSets based on view actions, permissions and etc.
+FilterSets based on view actions, permissions, etc.
 
 Navigating to our endpoint, we should be able to filter users by username. We
-should also get some errors messages if we get something wrong, for example:
+should also get some error messages if something goes wrong, for example:
 
 .. code-block:: json
     :caption: ``GET /api/users/``
@@ -223,8 +223,8 @@ Using constraints
 -----------------
 
 Depending on your API design, it might not be desirable to make these filters
-available at the same time. We might force users to only provide id or name
-using a built-in constraint:
+available at the same time. We might force users to only provide ``id`` or
+``name`` using a built-in constraint:
 
 .. code-block:: python
 
@@ -258,8 +258,8 @@ using a built-in constraint:
             ]
 
 Notice that we used resolved query parameter names while supplying fields for
-our constraint. This constraint will create a ValidationError when both fields
-are used at the same time:
+our constraint. This constraint will raise a ``ValidationError`` when both
+fields are used at the same time:
 
 .. code-block:: json
     :caption: GET /api/users/?company.id=1&company.name=google
@@ -316,7 +316,7 @@ tables we can group these filters together, by providing ``group`` argument on
 parent filter, from which both of them will inherit. We can also specify groups
 per filter basis.
 
-Doing this result in a query like this:
+Doing this results in a query like this:
 
 .. code-block:: sql
 

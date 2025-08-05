@@ -42,7 +42,7 @@ use of view and request objects. Here is an example:
                 return user.preferred_feed_type
             return super().get_default(param, default)
 
-This example will adopt to the feed type users have selected and will default
+This example will adapt to the feed type users have selected and will default
 to all posts for anonymous users.
 
 .. danger::

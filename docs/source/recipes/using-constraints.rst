@@ -14,7 +14,7 @@ There are 4 built-in constraints:
 ---------------------
 
 This constraint enforces mutual exclusivity between specified filters. This can
-bu used to restrict the use of filters that does not make sense together.
+be used to restrict the use of filters that do not make sense together.
 
 For example:
 
@@ -34,7 +34,7 @@ Won't allow specifying ``id`` and ``search`` query parameters at the same time.
 ---------------------
 
 This constraint enforces mutual inclusivity between specified filters. This can
-bu used to enforce the use certain filters together.
+be used to enforce the use of certain filters together.
 
 For example:
 
@@ -131,9 +131,9 @@ While creating custom constraints, we need to keep some things in mind:
 
 .. note::
 
-    And ``empty`` value in this context basically means "the field is here, but
+    ``empty`` value in this context basically means "the field is here, but
     value is invalid". This is useful since some constraints do not care about
-    the value itself but the absence/presence of it.
+    the value itself but care about the absence/presence of it.
 
 Creating a custom constraint
 ----------------------------

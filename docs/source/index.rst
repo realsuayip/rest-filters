@@ -26,16 +26,16 @@ Introduction
 What is rest-filters?
 =====================
 
-rest-filers is an extension for Django REST Framework that parses query
+rest-filters is an extension for Django REST Framework that parses query
 parameters and constructs the corresponding ``QuerySet`` objects. It serves as
 a replacement for the commonly used ``django-filter`` library.
 
-Highlight features
-------------------
+Key features
+------------
 
 ``rest-filters`` is specifically designed to be used in a REST API context. You
 can enforce strict constraints on your parameters, how they are provided and
-how they interact with each other. Here are some highlight features:
+how they interact with each other. Here are some key features:
 
 - **Use serializer fields to parse query parameters.** Existing serializer
   fields used in request bodies can be reused directly, ensuring consistency in
@@ -44,7 +44,7 @@ how they interact with each other. Here are some highlight features:
 - **Support for default values on filter fields is built-in and straightforward
   to use.** Defaults can be either static or dynamically computed at runtime.
   Unlike ``django-filter``, which omits this feature to align with Django forms
-  behavior, rest-filers embraces it as a common and practical pattern in API
+  behavior, rest-filters embraces it as a common and practical pattern in API
   design. For example, a date range filter can default to the last 90 days and
   enforce this constraint by limiting the selectable range.
 - **Use filter groups to combine related query components (e.g., using logical

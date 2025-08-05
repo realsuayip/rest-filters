@@ -22,7 +22,7 @@ All of the above can be overridden by explicitly specifying related filter
 option.
 
 Using child filters will create a *namespace* using the parent query parameter
-as the prefix and using dot as seperator, resulting in more structured query
+as the prefix and using dot as separator, resulting in more structured query
 parameters.
 
 Here is an example filter that makes use of child filters:
@@ -46,7 +46,7 @@ The example above will create 3 query parameters:
 - ``created.lte`` that filters results before some certain date. For example
   ``?created.lte=2026-01-01``
 
-Thanks to inherited attributes, we didn't have to write much. But lets make
+Thanks to inherited attributes, we didn't have to write much. But let's make
 these parameters a bit more readable by overriding child filters names:
 
 .. code-block:: python

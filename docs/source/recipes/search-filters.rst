@@ -1,11 +1,11 @@
 Search filters
 ==============
 
-A query parameter solely reserved for search functionality is common in
-applications. Generally speaking, this filter will require us performing
-lookups on multiple fields.
+A query parameter dedicated to search functionality is common in applications.
+Generally speaking, this filter will require performing lookups on multiple
+fields.
 
-This can easily be achieved using the template parameter, here is an example:
+This can easily be achieved using the template parameter. Here is an example:
 
 .. code-block:: python
 
@@ -23,12 +23,12 @@ ease. Notice that we did not specify values for Q objects, since their values
 will be determined by the value of query parameter itself.
 
 Now let's do something more involved: What if we allowed users to specify which
-fields they want to perform search on? This way our search parameter would be
-much flexible, allowing users to do lookups on specific fields.
+fields to search on? This way our search parameter would be much more flexible,
+allowing users to do lookups on specific fields.
 
-To do this we would have to create an auxiliary query parameter called
-``search.fields``, containing comma seperated field names. Here is a detailed
-example:
+To do this, we would need to create an auxiliary query parameter called
+``search.fields``, containing comma separated field names. Here is a detailed
+implementation:
 
 .. code-block:: python
 
@@ -89,25 +89,26 @@ example:
                 ),
             ]
 
-In the example above, following is happening:
+In the example above, the following is happening:
 
-1. We created a filter which encapsulates search parameters. ``search.filter``
-   being the child of ``search``.
+1. We created a filter which encapsulates search parameters, with
+   ``search.fields`` being the child of ``search``.
 2. We assigned a group named "search" to these filters so that they would fall
-   into same group. This is that we can use ``get_group_entry`` method to
+   into the same group. This allows us to use ``get_group_entry`` method to
    capture them together.
-3. We used a plain ``CharField`` for search term and combined ``CSVField`` with
-   ``ChoiceField`` to simulate a multiple choice query parameter for search
+3. We used a plain ``CharField`` for the search term and combined ``CSVField``
+   with ``ChoiceField`` to create a multiple choice query parameter for search
    fields.
-4. We marked ``search.fields`` with ``noop=True`` so that it would not try to
-   resolve a query expression, this is because this field by itself does
-   nothing and is going to be used as an "helper".
-5. In ``get_group_entry`` we captured these fields' values and dynamically
+4. We marked ``search.fields`` with ``noop=True`` so that it would not attempt
+   to resolve a query expression, this is because this field by itself does
+   nothing and is used as a "helper".
+5. In ``get_group_entry``, we captured these fields' values and dynamically
    resolved the final query expression of the ``search`` group.
 6. We added a dependency constraint so that specifying ``search.fields``
-   without a search term would cause a ``ValidationError``, informing user
+   without a search term would raise a ``ValidationError``, informing user
    about the requirement.
 
-This example could further be extended to allow specifying lookups. For example
-users could specify ``username`` for exact lookups and ``username.icontains``
-for substring lookups. This is is left as an exercise for the reader.
+This example could be further extended to allow specifying lookups. For
+example, users could specify ``username`` for exact lookups and
+``username.icontains`` for substring lookups. This is left as an exercise for
+the reader.
