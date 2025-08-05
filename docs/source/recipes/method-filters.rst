@@ -113,7 +113,7 @@ Here is an another example:
             )
             return expr if value else ~expr
 
-        def filter_by_needs_misuse_review(self, param: str, value: int) -> Entry | None:
+        def filter_by_needs_misuse_review(self, param: str, value: bool) -> Entry | None:
             if not self.request.user.is_staff:
                 raise serializers.ValidationError(
                     "You do not have appropriate permissions to use this query parameter."
