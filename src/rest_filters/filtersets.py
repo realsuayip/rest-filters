@@ -114,8 +114,10 @@ class FilterSet(Generic[_MT_co]):
         view: APIView,
     ) -> None:
         self.request = request
+        """Django REST framework ``Request`` object."""
         self.queryset = queryset
         self.view = view
+        """View instance for this request."""
 
         self._fields = copy.deepcopy(self.compiled_fields)
         self._constraints = copy.deepcopy(self.options.constraints)
@@ -239,6 +241,13 @@ class FilterSet(Generic[_MT_co]):
         return self.add_to_queryset(queryset, self.get_group_entry(group, entries))
 
     def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
+        """
+        Resolve Entry for given group.
+
+        :param group: Name of the group that is currently being resolved.
+        :param entries: Query parameters belonging to this group, with their
+         corresponding Entry.
+        """
         combinator = self.options.combinators.get(group, operator.and_)
         expressions = [
             entry.expression
@@ -281,18 +290,57 @@ class FilterSet(Generic[_MT_co]):
         queryset: QuerySet[_MT_co],
         values: dict[str, Any],
     ) -> QuerySet[_MT_co]:
+        """
+        Returns the final QuerySet object. At this point, all the filters are
+        applied. Override this method to perform operations on QuerySet that is
+        otherwise not possible, such as ``order_by()`` and ``distinct()`` calls.
+
+        :param queryset: Filtered QuerySet object.
+        :param values: Parsed query parameters.
+        """
         return queryset
 
     def get_fields(self) -> dict[str, Filter]:
+        """
+        Resolve Filter's that are going to be used in this FilterSet. You may
+        override this method to dynamically add filters.
+
+        .. danger::
+
+            Make sure additional Filter instances are initialized inside this
+            method, using global variables will lead to dangling references.
+        """
         return self._fields
 
     def get_default(self, param: str, default: Any) -> Any:
+        """
+        Dynamically determine the default value for given ``param``.
+
+        :param param: Parameter name.
+        :param default: Default value that is otherwise going to be used.
+        :return: Default value.
+        """
         return default
 
     def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
+        """
+        Dynamically resolve the serializer field for given ``param``.
+
+        :param param: Parameter name.
+        :param serializer: Serializer field that is otherwise going to be used.
+        :return: Serializer field.
+        """
         return serializer  # type: ignore[return-value]
 
     def get_serializer_context(self, param: str) -> dict[str, Any]:
+        """
+        Get serializer context for given param. By default, this will use
+        ``view.get_serializer.context``. The context will also include this
+        FilterSet instance.
+
+        :param param: Parameter name.
+        :return: Context dictionary.
+        """
         context: dict[str, Any] = self.view.get_serializer_context()  # type: ignore[attr-defined]
         context["filterset"] = self
         return context
@@ -300,9 +348,28 @@ class FilterSet(Generic[_MT_co]):
     def run_validation(
         self, value: str | _Empty, serializer: AnyField, param: str
     ) -> Any:
+        """
+        Run validation for given param.
+
+        :param value: Value provided by the user. This will be ``empty`` if the
+         parameter is missing.
+        :param serializer: Serializer field that is going to be used for
+         validation.
+        :param param: Parameter name.
+        :return: Parsed query parameter value.
+        """
         return serializer.run_validation(value)
 
     def get_constraints(self) -> Sequence[Constraint]:
+        """
+        Resolve ``Constraint`` objects that are going to be used in this
+        FilterSet. You may override this method to dynamically add constraints.
+
+        .. danger::
+
+            Make sure additional Constraint instances are initialized inside
+            this method, using global variables will lead to dangling references.
+        """
         return self._constraints
 
     def handle_constraints(self, valuedict: dict[str, Any]) -> dict[str, Any]:
@@ -324,6 +391,13 @@ class FilterSet(Generic[_MT_co]):
     def handle_unknown_parameters(
         self, unknown: list[str], known: list[str]
     ) -> dict[str, Any]:
+        """
+        Creates error messages for unknown parameters.
+
+        :param unknown: Unknown parameters the user supplied.
+        :param known: Known parameters.
+        :return: An error dictionary.
+        """
         fields = {}
         for param in unknown:
             matches = get_close_matches(param, known)
@@ -348,4 +422,8 @@ class FilterSet(Generic[_MT_co]):
         return fields
 
     def handle_errors(self, errordict: dict[str, Any]) -> None:
+        """
+        Raises ``ValidationError`` for given errors. You may override this
+        method to change the error format.
+        """
         raise serializers.ValidationError(errordict)

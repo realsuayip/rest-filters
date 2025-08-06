@@ -20,6 +20,15 @@ if TYPE_CHECKING:
 
 
 class Entry:
+    """
+    Each Filter ultimately resolves to an Entry object, which contains
+    information on how to modify a QuerySet.
+
+    Attributes of Entry objects within the same group are combined to create a
+    new Entry instance, representing the cumulative changes to the QuerySet
+    made by all filters in that group.
+    """
+
     def __init__(
         self,
         *,
@@ -28,6 +37,15 @@ class Entry:
         value: Any,
         expression: Any,
     ):
+        """
+        :param group: Group of this Entry.
+        :param aliases: Annotations that are going to be applied to QuerySet.
+         These annotations can be referenced in the expression.
+        :param value: Parsed value of the query parameter. If groups combined
+         multiple query parameters, this will be a dictionary of
+         ``{name: value}`` pairs.
+        :param expression: Resolved query expression of this Entry.
+        """
         self.group = group
         self.aliases = aliases
         self.value = value
@@ -71,6 +89,39 @@ class Filter:
         blank: Literal["keep", "omit"] | None = None,
         noop: bool = False,
     ) -> None:
+        """
+        A data descriptor for query parameters.
+
+        :param f: The serializer field that will parse this query parameter. This can
+         be left empty if ``FilterSet.get_serializer`` is used to dynamically resolve
+         serializer field. A child filter may also omit this, in which case parent
+         serializer field is used.
+        :param field: A string (field name) or Django expression that determines the
+         database field/expression that is going to be filtered against. Child filters
+         will inherit this value.
+        :param lookup: The lookup that will be used with the resolved database field.
+        :param template: A ``Q`` object that determines query expression for this
+         parameter. For example ``Q("username") | Q("email")`` will match username or
+         email field.
+        :param group: Group identifier for this filter. Child filters will inherit their
+         parent's group (if set).
+        :param negate: Set this to ``True`` to negate the resolved query expression.
+        :param method: A method on current FilterSet class that is going to determine
+         the query expression for this filter.
+        :param aliases: Additional expressions that are going to be added to the
+         QuerySet.
+        :param param: The name of this query parameter.
+        :param children: A list of filters that reside under the namespace of this
+         filter.
+        :param namespace: When enabled, marks this filter as *namespace* and disables
+         it. Only the child filters belonging to this filter will be available.
+        :param blank: Determines :py:attr:`rest_filters.conf.AppSettings.BLANK` behavior
+         for this filter.
+        :param noop: Set this to ``True`` to disable query expression resolution. In
+         this mode, the query parameter won't do any filtering, however its value will
+         be validated and available.
+        """
+
         self._field = field
         self.lookup = lookup
         self.template = template

@@ -30,6 +30,9 @@ Introduction
 
     reference/settings
     reference/filterset-options
+    reference/filter-reference
+    reference/filterset-reference
+    reference/entry-reference
 
 What is rest-filters?
 =====================
