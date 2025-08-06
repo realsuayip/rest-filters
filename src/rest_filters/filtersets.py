@@ -50,6 +50,23 @@ class Options:
         combinators: dict[str, Any] | NotSet = notset,
         blank: Literal["keep", "omit"] | NotSet = notset,
     ) -> None:
+        """
+        The following parameters can be used as class attributes in
+        ``FilterSet.Meta``:
+
+        :param fields: A subset of available query parameters that will be used
+         in this FilterSet. Use this to disable certain query parameters.
+        :param known_parameters: Overrides
+         :py:attr:`rest_filters.conf.AppSettings.KNOWN_PARAMETERS`
+        :param handle_unknown_parameters: Overrides
+         :py:attr:`rest_filters.conf.AppSettings.BLANK`
+        :param constraints: A list of constraint instances that are going to be
+         enforced for this FilterSet.
+        :param combinators: A dictionary that contains the query combination
+         operator for given groups. The default operator for groups is
+         ``operator.and_``.
+        :param blank: Overrides :py:attr:`rest_filters.conf.AppSettings.BLANK`
+        """
         self._known_parameters = known_parameters
         self._extend_known_parameters = extend_known_parameters
         self._handle_unknown_parameters = handle_unknown_parameters

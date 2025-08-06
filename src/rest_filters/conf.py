@@ -25,9 +25,44 @@ def get_default_known_parameters() -> list[str]:
 
 @dataclass(frozen=True)
 class AppSettings:
+    """
+    There are few settings that change how ``rest-filters`` behaves globally.
+    Most of these settings can also be changed per-Filterset basis.
+
+    You can use these settings by adding ``REST_FILTERS`` setting to your
+    Django configuration file. For example:
+
+    .. code-block:: python
+
+        REST_FILTERS = {
+            "BLANK": "keep",
+            "KNOWN_PARAMETERS": ["page", "page_size"],
+        }
+    """
+
     BLANK: Literal["keep"] | Literal["omit"] = "omit"
+    """
+    Determines how empty query parameters are handled. Default is ``omit``
+    which behaves as if query parameter was not provided. Setting this to
+    ``keep`` will cause empty values to be parsed by the related field.
+    """
     KNOWN_PARAMETERS: list[str] = notset  # type: ignore[assignment]
+    """
+    A list of query parameters that are not defined in FilterSet but otherwise
+    used by other mechanisms, such as pagination.
+
+    By default, the following query parameters are marked as known:
+
+    - page
+    - page_size
+    - cursor
+    - ``api_settings.ORDERING_PARAM``
+    - ``api_settings.VERSION_PARAM``
+    """
     HANDLE_UNKNOWN_PARAMETERS: bool = True
+    """
+    Decides whether to handle unknown parameters.
+    """
 
     def __getattribute__(self, __name: str) -> Any:
         user_settings = getattr(settings, "REST_FILTERS", {})

@@ -23,6 +23,14 @@ Introduction
     recipes/method-filters
     recipes/ordering-filters
 
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+    :caption: Reference
+
+    reference/settings
+    reference/filterset-options
+
 What is rest-filters?
 =====================
 
