@@ -10,7 +10,13 @@ from rest_framework import serializers
 from rest_framework.settings import api_settings
 
 if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise as StrOrPromise
+
     from rest_filters.filtersets import FilterSet
+else:
+    from django.utils.functional import Promise as StrPromise
+
+    StrOrPromise = str | StrPromise
 
 
 __all__ = [
@@ -20,9 +26,6 @@ __all__ = [
     "MutuallyExclusive",
     "MutuallyInclusive",
 ]
-
-
-StrOrPromise = str
 
 
 class Constraint:
