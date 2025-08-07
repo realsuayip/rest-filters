@@ -59,7 +59,7 @@ class Options:
         :param known_parameters: Overrides
          :py:attr:`rest_filters.conf.AppSettings.KNOWN_PARAMETERS`
         :param handle_unknown_parameters: Overrides
-         :py:attr:`rest_filters.conf.AppSettings.BLANK`
+         :py:attr:`rest_filters.conf.AppSettings.HANDLE_UNKNOWN_PARAMETERS`
         :param constraints: A list of constraint instances that are going to be
          enforced for this FilterSet.
         :param combinators: A dictionary that contains the query combination
@@ -302,7 +302,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_fields(self) -> dict[str, Filter]:
         """
-        Resolve Filter's that are going to be used in this FilterSet. You may
+        Resolve Filters that are going to be used in this FilterSet. You may
         override this method to dynamically add filters.
 
         .. danger::
@@ -335,7 +335,7 @@ class FilterSet(Generic[_MT_co]):
     def get_serializer_context(self, param: str) -> dict[str, Any]:
         """
         Get serializer context for given param. By default, this will use
-        ``view.get_serializer.context``. The context will also include this
+        ``view.get_serializer_context()``. The context will also include this
         FilterSet instance.
 
         :param param: Parameter name.

@@ -26,10 +26,10 @@ def get_default_known_parameters() -> list[str]:
 @dataclass(frozen=True)
 class AppSettings:
     """
-    There are few settings that change how ``rest-filters`` behaves globally.
-    Most of these settings can also be changed per-Filterset basis.
+    There are a few settings that change how ``rest-filters`` behaves globally.
+    Most of these settings can also be changed on a per-FilterSet basis.
 
-    You can use these settings by adding ``REST_FILTERS`` setting to your
+    You can use these settings by adding the ``REST_FILTERS`` setting to your
     Django configuration file. For example:
 
     .. code-block:: python
