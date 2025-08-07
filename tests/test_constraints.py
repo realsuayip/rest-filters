@@ -37,7 +37,7 @@ def test_handle_constraints() -> None:
     )
     assert errors == {
         "non_field_errors": [
-            "Following fields are mutually exclusive,"
+            "The following fields are mutually exclusive,"
             ' you may only provide one of them: "username", "email"'
         ]
     }
@@ -163,25 +163,25 @@ def test_mutually_exclusive_constraint() -> None:
 
     assert errors1 == {
         "non_field_errors": [
-            "Following fields are mutually exclusive,"
+            "The following fields are mutually exclusive,"
             ' you may only provide one of them: "a", "b"'
         ]
     }
     assert errors2 == {
         "non_field_errors": [
-            "Following fields are mutually exclusive,"
+            "The following fields are mutually exclusive,"
             ' you may only provide one of them: "a", "b", "c"'
         ]
     }
     assert errors3 == {
         "non_field_errors": [
-            "Following fields are mutually exclusive,"
+            "The following fields are mutually exclusive,"
             ' you may only provide one of them: "a", "c"'
         ]
     }
     assert errors4 == {
         "non_field_errors": [
-            "Following fields are mutually exclusive,"
+            "The following fields are mutually exclusive,"
             ' you may only provide one of them: "b", "c"'
         ]
     }
@@ -239,7 +239,7 @@ def test_mutually_inclusive_constraint() -> None:
         == errors7
         == {
             "non_field_errors": [
-                "Following fields are mutually inclusive, you must provide"
+                "The following fields are mutually inclusive, you must provide"
                 ' them all at once or none of them: "a", "b", "c"'
             ]
         }
@@ -285,15 +285,15 @@ def test_constraint_combination_bad_combination() -> None:
     errors2 = instance.handle_constraints({"a": 1, "b": 2, "c": 3})
     assert errors1 == {
         "non_field_errors": [
-            "Following fields are mutually inclusive, you must provide them"
+            "The following fields are mutually inclusive, you must provide them"
             ' all at once or none of them: "a", "b", "c"',
-            "Following fields are mutually exclusive, you may only provide"
+            "The following fields are mutually exclusive, you may only provide"
             ' one of them: "a", "b"',
         ]
     }
     assert errors2 == {
         "non_field_errors": [
-            "Following fields are mutually exclusive, you may only provide"
+            "The following fields are mutually exclusive, you may only provide"
             ' one of them: "a", "b"'
         ]
     }
@@ -508,7 +508,7 @@ def test_dependency_constraint_case_multiple_depends_on() -> None:
     errors4 = instance.handle_constraints({})
     assert errors1 == {
         "search": [
-            "This query parameter also requires following parameters"
+            "This query parameter also requires the following parameters"
             ' to be present: "search.lookup", "search.field"',
         ]
     }
@@ -585,23 +585,23 @@ def test_dependency_constraint_multiple_depends_with_multiple_fields() -> None:
 
     assert errors1 == {
         "created.gte": [
-            "This query parameter also requires following parameters"
+            "This query parameter also requires the following parameters"
             ' to be present: "created.timezone", "created.format"'
         ]
     }
     assert errors2 == {
         "created.lte": [
-            "This query parameter also requires following parameters"
+            "This query parameter also requires the following parameters"
             ' to be present: "created.timezone", "created.format"'
         ]
     }
     assert errors3 == {
         "created.gte": [
-            "This query parameter also requires following parameters"
+            "This query parameter also requires the following parameters"
             ' to be present: "created.timezone", "created.format"'
         ],
         "created.lte": [
-            "This query parameter also requires following parameters"
+            "This query parameter also requires the following parameters"
             ' to be present: "created.timezone", "created.format"'
         ],
     }

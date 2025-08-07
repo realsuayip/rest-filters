@@ -29,7 +29,7 @@ chains each expression.
 
 Ultimately, both of these queries will find Geometry objects that are **red
 triangles**. However, when filtering on fields with multi-valued relationships,
-such as ManyToManyField's or reverse foreign keys, the behavior changes.
+such as ManyToManyFields or reverse foreign keys, the behavior changes.
 
 For example, let's assume a ``Scene`` object, which contains many geometries.
 We would like to find scenes which contain red triangles. To do so, we would

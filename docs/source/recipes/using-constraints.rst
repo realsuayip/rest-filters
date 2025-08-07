@@ -90,6 +90,7 @@ For example:
 
 .. code-block:: python
 
+    from datetime import timedelta
     from rest_framework.fields import empty
     from rest_filters.constraints import MethodConstraint, MutuallyInclusive
 
@@ -107,7 +108,7 @@ For example:
                 ),
             ]
 
-        def ensure_valid_date_range(self, values: dict[str, Any]) -> bool:
+        def ensure_valid_date_range(self, values: dict[str, Any]) -> None:
             start, end = (
                 values.get("start_date", empty),
                 values.get("end_date", empty),
@@ -120,7 +121,7 @@ For example:
                     )
 
 This example defines two fields for filtering by range, requires them both to
-be present and enforces 90 day window for the filter.
+be present and enforces a 90-day window for the filter.
 
 While creating custom constraints, we need to keep some things in mind:
 
@@ -149,12 +150,13 @@ Here is the range example above, created as custom constraint:
 
 .. code-block:: python
 
+    from datetime import timedelta
     from rest_framework.fields import empty
     from rest_filters.constraints import Constraint
 
 
     class RangeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> bool:
+        def check(self, values: dict[str, Any]) -> None:
             start, end = (
                 values.get("start_date", empty),
                 values.get("end_date", empty),

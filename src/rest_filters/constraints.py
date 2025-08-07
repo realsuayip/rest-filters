@@ -83,7 +83,7 @@ class MutuallyExclusive(Constraint):
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
-                    "Following fields are mutually exclusive,"
+                    "The following fields are mutually exclusive,"
                     " you may only provide one of them: %(fields)s"
                 )
                 % {
@@ -117,7 +117,7 @@ class MutuallyInclusive(Constraint):
         return {
             api_settings.NON_FIELD_ERRORS_KEY: [
                 gettext(
-                    "Following fields are mutually inclusive,"
+                    "The following fields are mutually inclusive,"
                     " you must provide them all at once or none of them: %(fields)s"
                 )
                 % {"fields": ", ".join(f'"{field}"' for field in self.fields)}
@@ -153,7 +153,7 @@ class Dependency(Constraint):
                 ngettext(
                     "This query parameter also requires the following"
                     " parameter to be present: %(params)s",
-                    "This query parameter also requires following"
+                    "This query parameter also requires the following"
                     " parameters to be present: %(params)s",
                     len(dependencies),
                 )

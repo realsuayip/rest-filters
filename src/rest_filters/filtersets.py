@@ -185,7 +185,7 @@ class FilterSet(Generic[_MT_co]):
         unknown = [field for field in cls.options.fields if field not in available]
         if unknown:
             raise ValueError(
-                "Following fields are not valid: %(fields)s,"
+                "The following fields are not valid: %(fields)s,"
                 " available fields: %(available)s"
                 % {
                     "fields": ", ".join((repr(item) for item in unknown)),

@@ -124,7 +124,7 @@ a method called ``get_filterset_class`` like so:
 
         filter_backends = [FilterBackend]
 
-        def get_filterset_class(self) -> FilterSet:
+        def get_filterset_class(self) -> type[FilterSet]:
             return UserFilterSet
 
 This method is more preferable since it also allows dynamic dispatch of
@@ -266,7 +266,7 @@ fields are used at the same time:
 
      {
          "non_field_errors": [
-             "Following fields are mutually exclusive, you may only provide one of them: \"company.id\", \"company.name\""
+             "The following fields are mutually exclusive, you may only provide one of them: \"company.id\", \"company.name\""
          ]
      }
 

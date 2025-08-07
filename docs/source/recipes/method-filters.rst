@@ -14,6 +14,9 @@ you may need to use request information to do some stuff.
 
     .. code-block:: python
 
+        from django.db.models import F, Value
+        from django.db.models.functions import Concat
+
         full_name = Filter(
             serializers.CharField(required=False),
             field=Concat(
@@ -27,6 +30,9 @@ you may need to use request information to do some stuff.
     Search in full name and username at the same time:
 
     .. code-block:: python
+
+        from django.db.models import F, Value, Q
+        from django.db.models.functions import Concat
 
         search = Filter(
             serializers.CharField(required=False),
@@ -45,6 +51,9 @@ by specifying a method. This method needs to be defined in your FilterSet
 class. Here is an example:
 
 .. code-block:: python
+
+    from django.db.models import Q
+
 
     class RepositoryFilterSet(FilterSet[Repository]):
         scope = Filter(
@@ -94,7 +103,11 @@ Here is another example:
 
 .. code-block:: python
 
-    class RepositoryFilter(FilterSet[Repository]):
+    from django.db.models import Exists, OuterRef, Count, Q
+    from rest_filters.filters import Entry
+
+
+    class RepositoryFilterSet(FilterSet[Repository]):
         is_starred = Filter(
             serializers.BooleanField(required=False),
             method="filter_by_is_starred",

@@ -76,8 +76,8 @@ implementation:
                 if search_fields := entries.get("search.fields"):
                     fields = search_fields.value
                 expr = Q()
-                for name in fields:
-                    expr |= Q(**{name: value})
+                for field in fields:
+                    expr |= Q(**{f"{field}__icontains": value})
                 return Entry(group=group, value=value, expression=expr)
             return super().get_group_entry(group, entries)
 

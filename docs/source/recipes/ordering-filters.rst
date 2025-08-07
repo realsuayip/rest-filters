@@ -4,7 +4,7 @@ Ordering filters
 ``rest-filters`` does not *natively* support ordering query parameters. This is
 because filtering and ordering are separate concerns. However, ``rest-filters``
 makes it quite easy to modify QuerySets with query parameters, even if you are
-not filtering thanks to ``noop`` directive.
+not filtering thanks to the ``noop`` directive.
 
 .. note::
 
@@ -117,7 +117,7 @@ In this example:
    fields with explicit ordering direction (asc or desc) and an option to
    specify how to deal with null values.
 2. We used ``CSVField`` to accept multiple of these fields so that we can
-   specify multiple ordering expression.
+   specify multiple ordering expressions.
 3. In ``get_queryset`` we constructed relevant ``F()`` object from parsed parts
    to do the actual ordering.
 

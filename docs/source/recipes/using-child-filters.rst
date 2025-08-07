@@ -18,7 +18,7 @@ filters will inherit certain behaviors from its parent:
     Since child filters are generally related to their parents and siblings, it
     is recommended to group them together.
 
-All of the above can be overridden by explicitly specifying related filter
+All of the above can be overridden by explicitly specifying the related filter
 option.
 
 Using child filters will create a *namespace* using the parent query parameter

@@ -3,5 +3,5 @@
 Settings
 ========
 
-.. autoclass:: rest_filters.conf::AppSettings
+.. autoclass:: rest_filters.conf.AppSettings
     :members:

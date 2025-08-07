@@ -233,7 +233,7 @@ def test_filterset_compiled_fields_case_remove_child_partial() -> None:
 def test_filterset_compiled_fields_bad_meta_fields() -> None:
     with pytest.raises(
         ValueError,
-        match=r"Following fields are not valid: 'bad_value', 'another_bad',"
+        match=r"The following fields are not valid: 'bad_value', 'another_bad',"
         " available fields: 'username', 'created.date', 'created.year', 'created'",
     ):
 
@@ -891,7 +891,7 @@ def test_get_groups_all_errors_are_merged() -> None:
         "username": [ErrorDetail(string="This field is required.", code="required")],
         "non_field_errors": [
             ErrorDetail(
-                string="Following fields are mutually exclusive, you may only"
+                string="The following fields are mutually exclusive, you may only"
                 ' provide one of them: "first_name", "last_name"',
                 code="invalid",
             )
@@ -933,7 +933,7 @@ def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> Non
     assert ctx.value.detail == {
         "non_field_errors": [
             ErrorDetail(
-                string="Following fields are mutually exclusive, you may only"
+                string="The following fields are mutually exclusive, you may only"
                 ' provide one of them: "first_name", "last_name"',
                 code="invalid",
             ),
