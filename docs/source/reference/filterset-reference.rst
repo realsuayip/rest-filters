@@ -1,3 +1,5 @@
+.. _filterset-reference:
+
 FilterSet Reference
 ===================
 

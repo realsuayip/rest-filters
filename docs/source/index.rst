@@ -9,6 +9,8 @@ Introduction
     self
     installation
     getting-started
+    concepts
+    openapi-support
 
 .. toctree::
     :hidden:

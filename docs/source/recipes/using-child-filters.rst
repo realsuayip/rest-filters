@@ -47,7 +47,7 @@ The example above will create 3 query parameters:
   ``?created.lte=2026-01-01``
 
 Thanks to inherited attributes, we didn't have to write much. But let's make
-these parameters a bit more readable by overriding child filters names:
+these parameters a bit more readable by overriding child filters' names:
 
 .. code-block:: python
 

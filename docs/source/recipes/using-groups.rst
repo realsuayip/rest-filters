@@ -1,3 +1,5 @@
+.. _using-groups:
+
 Using groups
 ============
 
@@ -48,7 +50,7 @@ Here is an example FilterSet that makes use of groups:
 
 .. code-block:: python
 
-    class FilterSet(FilterSet[Scene]):
+    class SceneFilterSet(FilterSet[Scene]):
         geometry_color = Filter(
             serializers.CharField(),
             group="geometry",

@@ -47,7 +47,7 @@ Here is an implementation of a typical ordering field:
 
 In this example:
 
-1. We defined a ``CSVField`` with ``ChoiceField`` as child, containing the
+1. We defined a ``CSVField`` with ``ChoiceField`` as the child, containing the
    possible ordering values. This will allow specifying multiple ordering
    fields while validating choices.
 2. We set a default value as fallback in case users don't specify ordering.

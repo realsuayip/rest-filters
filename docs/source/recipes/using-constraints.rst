@@ -113,8 +113,11 @@ For example:
                 values.get("end_date", empty),
             )
             if (start is not empty) and (end is not empty):
-                return end - start <= timedelta(days=90)
-            return True
+                in_range = end - start <= timedelta(days=90)
+                if not in_range:
+                    raise serializers.ValidationError(
+                        "The date range cannot be greater than 90 days."
+                    )
 
 This example defines two fields for filtering by range, requires them both to
 be present and enforces 90 day window for the filter.

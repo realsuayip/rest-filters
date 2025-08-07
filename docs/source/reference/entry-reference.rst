@@ -1,3 +1,5 @@
+.. _entry-reference:
+
 Entry Reference
 ===============
 
