@@ -31,6 +31,7 @@ Introduction
     reference/settings
     reference/filterset-options
     reference/filter-reference
+    reference/field-reference
     reference/filterset-reference
     reference/entry-reference
 
