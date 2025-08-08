@@ -1,6 +1,6 @@
 name: Lint
 
-on: [push, pull_request]
+on: [push]
 
 env:
   FORCE_COLOR: 1
@@ -13,10 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version-file: "pyproject.toml"
-          cache: pip
       - uses: tox-dev/action-pre-commit-uv@v1
