@@ -82,9 +82,6 @@ addopts = """
     -Wall
     --no-migrations
     --tb=short
-    --cov=rest_filters
-    --cov-report html
-    --cov-context=test
  """
 
 [tool.coverage.run]
@@ -113,6 +110,7 @@ deps =
     pytest
     pytest-cov
     pytest-django
+    drf-spectacular
 commands =
     pytest
 """
