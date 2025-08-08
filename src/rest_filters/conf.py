@@ -58,6 +58,7 @@ class AppSettings:
     - cursor
     - ``api_settings.ORDERING_PARAM``
     - ``api_settings.VERSION_PARAM``
+    - ``api_settings.URL_FORMAT_OVERRIDE``
     """
     HANDLE_UNKNOWN_PARAMETERS: bool = True
     """
