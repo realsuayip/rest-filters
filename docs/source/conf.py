@@ -12,7 +12,7 @@ settings.configure()
 project = "rest-filters"
 copyright = "2025, şuayip üzülmez"
 author = "şuayip üzülmez"
-release = "0.4.2"
+release = "0.4.3"
 
 # -- General configuration ---------------------------------------------------
 extensions = [
