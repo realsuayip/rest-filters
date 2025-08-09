@@ -10,6 +10,7 @@ from difflib import get_close_matches
 from typing import TYPE_CHECKING, Any, Generic, Literal, final
 
 from django.db.models import QuerySet
+from django.http import QueryDict
 from django.utils.translation import gettext
 
 from rest_framework import serializers
@@ -82,13 +83,13 @@ class Options:
         self.combinators = combinators
 
     @property
-    def known_parameters(self) -> tuple[str] | list[str]:
+    def known_parameters(self) -> list[str]:
         params = self._known_parameters
         if params is notset:
             params = app_settings.KNOWN_PARAMETERS
         if self._extend_known_parameters is not notset:
             params = (*params, *self._extend_known_parameters)
-        return params
+        return list(params)
 
     @property
     def handle_unknown_parameters(self) -> bool:
@@ -194,19 +195,27 @@ class FilterSet(Generic[_MT_co]):
             )
         return ret
 
+    def get_query_params(self) -> QueryDict:
+        return self.request.query_params
+
+    def get_known_parameters(self) -> list[str]:
+        return self.options.known_parameters
+
     def get_groups(self) -> tuple[dict[str, dict[str, Entry]], dict[str, Any]]:
-        params = self.request.query_params
-        fields = self.get_fields()
+        params, fields, known_parameters = (
+            self.get_query_params(),
+            self.get_fields(),
+            self.get_known_parameters(),
+        )
         groupdict: dict[str, dict[str, Entry]]
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
-        known = [*self.options.known_parameters]
         for _, field in fields.items():
             try:
                 field._filterset = self
                 entries, errors = field.resolve(params)
             finally:
                 field._filterset = None
-            known.extend((*entries, *errors))
+            known_parameters.extend((*entries, *errors))
             for param, entry in entries.items():
                 if entry is not None:
                     groupdict[entry.group][param] = entry
@@ -216,9 +225,11 @@ class FilterSet(Generic[_MT_co]):
                 valuedict[param] = empty
         merge_errors(errordict, self.handle_constraints(valuedict))
         if self.options.handle_unknown_parameters:
-            unknown = [field for field in params if field not in known]
+            unknown = [field for field in params if field not in known_parameters]
             if unknown:
-                merge_errors(errordict, self.handle_unknown_parameters(unknown, known))
+                merge_errors(
+                    errordict, self.handle_unknown_parameters(unknown, known_parameters)
+                )
         if errordict:
             self.handle_errors(errordict)
         return dict(groupdict), valuedict
