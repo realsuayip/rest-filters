@@ -11,6 +11,7 @@ Introduction
     getting-started
     concepts
     openapi-support
+    migration-guide
 
 .. toctree::
     :hidden:
