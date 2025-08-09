@@ -49,6 +49,7 @@ class UserFilterSet(FilterSet[User]):
             Filter(
                 serializers.CharField(min_length=2, required=False),
                 lookup="name__icontains",
+                param="name",
             ),
         ],
     )
