@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rest-filters"
-version = "0.4.1"
+version = "0.4.2"
 description = "A filter backend for Django REST framework."
 readme = "README.md"
 authors = [{ name = "şuayip üzülmez", email = "suayip.541@gmail.com" }]
