@@ -9,7 +9,7 @@ class CSVField(serializers.ListField):
 
     Requires a ``child`` argument for validation and conversion for each item.
     You can provide ``serializers.ChoiceField`` as the child to simulate a
-    multiple choice field.
+    multiple-choice field.
 
     This is a subclass of ``serializers.ListField``, so you can specify
     parameters such as ``min_length``, ``max_length`` and ``allow_empty``.

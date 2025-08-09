@@ -242,7 +242,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
         """
-        Resolve Entry for given group.
+        Resolve Entry for the given group.
 
         :param group: Name of the group that is currently being resolved.
         :param entries: Query parameters belonging to this group, with their
@@ -292,8 +292,9 @@ class FilterSet(Generic[_MT_co]):
     ) -> QuerySet[_MT_co]:
         """
         Returns the final QuerySet object. At this point, all the filters are
-        applied. Override this method to perform operations on QuerySet that is
-        otherwise not possible, such as ``order_by()`` and ``distinct()`` calls.
+        applied. Override this method to perform operations on QuerySet that
+        are otherwise not possible, such as ``order_by()`` and ``distinct()``
+        calls.
 
         :param queryset: Filtered QuerySet object.
         :param values: Parsed query parameters.
@@ -302,7 +303,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_fields(self) -> dict[str, Filter]:
         """
-        Resolve Filters that are going to be used in this FilterSet. You may
+        Resolve filters that are going to be used in this FilterSet. You may
         override this method to dynamically add filters.
 
         .. danger::
@@ -314,7 +315,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_default(self, param: str, default: Any) -> Any:
         """
-        Dynamically determine the default value for given ``param``.
+        Dynamically determine the default value for the given param.
 
         :param param: Parameter name.
         :param default: Default value that is otherwise going to be used.
@@ -324,7 +325,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
         """
-        Dynamically resolve the serializer field for given ``param``.
+        Dynamically resolve the serializer field for the given param.
 
         :param param: Parameter name.
         :param serializer: Serializer field that is otherwise going to be used.
@@ -334,7 +335,7 @@ class FilterSet(Generic[_MT_co]):
 
     def get_serializer_context(self, param: str) -> dict[str, Any]:
         """
-        Get serializer context for given param. By default, this will use
+        Get serializer context for the given param. By default, this will use
         ``view.get_serializer_context()``. The context will also include this
         FilterSet instance.
 
@@ -349,7 +350,7 @@ class FilterSet(Generic[_MT_co]):
         self, value: str | _Empty, serializer: AnyField, param: str
     ) -> Any:
         """
-        Run validation for given param.
+        Run validation for the given param.
 
         :param value: Value provided by the user. This will be ``empty`` if the
          parameter is missing.
@@ -362,13 +363,14 @@ class FilterSet(Generic[_MT_co]):
 
     def get_constraints(self) -> Sequence[Constraint]:
         """
-        Resolve ``Constraint`` objects that are going to be used in this
-        FilterSet. You may override this method to dynamically add constraints.
+        Resolve constraint objects that are going to be used in this FilterSet.
+        You may override this method to dynamically add constraints.
 
         .. danger::
 
             Make sure additional Constraint instances are initialized inside
-            this method, using global variables will lead to dangling references.
+            this method, using global variables will lead to dangling
+            references.
         """
         return self._constraints
 

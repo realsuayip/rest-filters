@@ -70,8 +70,8 @@ class AppSettings:
         value = user_settings.get(__name, super().__getattribute__(__name))
         if value is notset:
             if __name == "KNOWN_PARAMETERS":
-                # Can't use this as default factory since it would access DRF
-                # settings at import time.
+                # Can't use this as the default factory since it would access
+                # DRF settings at import time.
                 return get_default_known_parameters()
         return value
 
