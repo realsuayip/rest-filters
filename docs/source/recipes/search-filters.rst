@@ -108,7 +108,10 @@ In the example above, the following is happening:
    without a search term would raise a ``ValidationError``, informing user
    about the requirement.
 
-This example could be further extended to allow specifying lookups. For
-example, users could specify ``username`` for exact lookups and
-``username.icontains`` for substring lookups. This is left as an exercise for
-the reader.
+This example could be further extended by:
+
+- Allowing lookups; for example, users could specify ``username`` for exact
+  lookups and ``username.icontains`` for substring lookups.
+- Using an additional query parameter to determine the logical operator.
+
+This is left as an exercise for the reader.
