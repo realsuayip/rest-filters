@@ -10,7 +10,6 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.fields import Field
 
-AnyField = Field[Any, Any, Any, Any]
 _MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
 
 NotSet = enum.Enum("NotSet", "notset")
@@ -20,6 +19,10 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
     from rest_filters import Filter, FilterSet
+
+    AnyField = Field[Any, Any, Any, Any]
+else:
+    AnyField = Field
 
 
 def fill_q_template(template: Q, *, value: Any) -> Q:
