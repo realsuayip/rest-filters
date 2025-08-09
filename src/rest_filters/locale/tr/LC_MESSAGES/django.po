@@ -1,0 +1,75 @@
+# rest-filters Turkish translations
+# Copyright (C) 2025
+# This file is distributed under the same license as the rest-filters package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: şuayip üzülmez\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: constraints.py:44
+#, python-format
+msgid "Request failed to meet constraint: %(constraint)s"
+msgstr "İstek şu kısıtlamayı karşılamadı: %(constraint)s"
+
+#: constraints.py:86
+#, python-format
+msgid ""
+"The following fields are mutually exclusive, you may only provide one of "
+"them: %(fields)s"
+msgstr ""
+"Belirtilen alanlar birbirini dışlar; yalnızca birini sağlayabilirsiniz: "
+"%(fields)s"
+
+#: constraints.py:120
+#, python-format
+msgid ""
+"The following fields are mutually inclusive, you must provide them all at "
+"once or none of them: %(fields)s"
+msgstr ""
+"Belirtilen alanlar birlikte zorunludur; ya hepsini bir arada "
+"sağlamalısınız ya da hiçbirini: %(fields)s"
+
+#: constraints.py:154
+#, python-format
+msgid ""
+"This query parameter also requires the following parameter to be present: "
+"%(params)s"
+msgid_plural ""
+"This query parameter also requires the following parameters to be present: "
+"%(params)s"
+msgstr[0] ""
+"Bu sorgu parametresi ayrıca şu parametrenin mevcut olmasını gerektirir: "
+"%(params)s"
+msgstr[1] ""
+"Bu sorgu parametresi ayrıca şu parametrelerin mevcut olmasını gerektirir: "
+"%(params)s"
+
+#: filtersets.py:407
+msgid "This query parameter does not exist."
+msgstr "Bu sorgu parametresi mevcut değil."
+
+#: filtersets.py:411
+#, python-format
+msgid "This query parameter does not exist. Did you mean \"%(param)s\"?"
+msgstr ""
+"Bu sorgu parametresi mevcut değil. Muhtemelen \"%(param)s\" demek "
+"istediniz."
+
+#: filtersets.py:419
+#, python-format
+msgid ""
+"This query parameter does not exist. Did you mean one of these: "
+"%(possibilities)s?"
+msgstr ""
+"Bu sorgu parametresi mevcut değil. Muhtemelen şunlardan birini demek "
+"istediniz: %(possibilities)s."
