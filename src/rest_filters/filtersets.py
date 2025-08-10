@@ -59,6 +59,8 @@ class Options:
          in this FilterSet. Use this to disable certain query parameters.
         :param known_parameters: Overrides
          :py:attr:`rest_filters.conf.AppSettings.KNOWN_PARAMETERS`
+        :param extend_known_parameters: Extends
+         :py:attr:`rest_filters.conf.AppSettings.KNOWN_PARAMETERS`
         :param handle_unknown_parameters: Overrides
          :py:attr:`rest_filters.conf.AppSettings.HANDLE_UNKNOWN_PARAMETERS`
         :param constraints: A list of constraint instances that are going to be
