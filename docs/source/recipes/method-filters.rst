@@ -18,7 +18,7 @@ you may need to use request information to do some stuff.
         from django.db.models.functions import Concat
 
         full_name = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             field=Concat(
                 F("first_name"),
                 Value(" "),
@@ -35,7 +35,7 @@ you may need to use request information to do some stuff.
         from django.db.models.functions import Concat
 
         search = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             aliases={
                 "full_name": Concat(
                     F("first_name"),
@@ -109,11 +109,11 @@ Here is another example:
 
     class RepositoryFilterSet(FilterSet[Repository]):
         is_starred = Filter(
-            serializers.BooleanField(required=False),
+            serializers.BooleanField(),
             method="filter_by_is_starred",
         )
         needs_misuse_review = Filter(
-            serializers.BooleanField(required=False),
+            serializers.BooleanField(),
             method="filter_by_needs_misuse_review",
         )
 

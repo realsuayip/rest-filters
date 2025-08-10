@@ -85,7 +85,7 @@ def _filter_to_schema(
     return {
         "name": f.get_param_name(),
         "in": "query",
-        "required": field.required,
+        "required": f.required,
         "schema": schema,
         "explode": False,
     }

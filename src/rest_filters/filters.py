@@ -88,6 +88,7 @@ class Filter:
         namespace: bool = False,
         blank: Literal["keep", "omit"] | None = None,
         noop: bool = False,
+        required: bool | None = None,
     ) -> None:
         """
         A data descriptor for query parameters.
@@ -123,6 +124,7 @@ class Filter:
         :param noop: Set this to ``True`` to disable query expression
          resolution. In this mode, the query parameter won't do any filtering
          however, its value will be validated and available.
+        :param required: Set this to ``True`` to make this parameter required.
         """
 
         self._field = field
@@ -151,6 +153,7 @@ class Filter:
 
         self.negate = negate
         self.noop = noop
+        self._required = required
 
         self._blank = blank
         self.method = method
@@ -199,6 +202,14 @@ class Filter:
             return filterset.options.blank
         return self._blank
 
+    @property
+    def required(self) -> bool:
+        if self._required is None:
+            if self.parent is not None:
+                return self.parent.required
+            return False
+        return self._required
+
     def bind(self, parent: Filter) -> None:
         self.parent = parent
 
@@ -240,7 +251,7 @@ class Filter:
             return self._serializer
         elif self.parent is not None:
             try:
-                return self.parent.get_serializer()
+                return copy.deepcopy(self.parent.get_serializer())
             except ValueError:
                 pass
         raise ValueError(
@@ -273,6 +284,7 @@ class Filter:
 
         serializer.default = filterset.get_default(param, serializer.default)
         serializer._context = filterset.get_serializer_context(param)  # type: ignore[attr-defined]
+        serializer.required = self.required
         return serializer
 
     def run_validation(self, value: str | _Empty, serializer: AnyField) -> Any:

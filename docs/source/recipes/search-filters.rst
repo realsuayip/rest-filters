@@ -11,7 +11,7 @@ This can easily be achieved using the template parameter. Here is an example:
 
     class UserFilterSet(FilterSet[User]):
         search = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             template=Q("username__icontains")
             | Q("email__icontains")
             | Q("first_name__icontains")
@@ -40,7 +40,7 @@ implementation:
 
     class UserFilterSet(FilterSet[User]):
         search = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             group="search",
             children=[
                 Filter(
@@ -53,7 +53,6 @@ implementation:
                                 "last_name",
                             ]
                         ),
-                        required=False,
                     ),
                     param="fields",
                     noop=True,

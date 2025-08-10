@@ -89,21 +89,22 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             serializers.CharField(
                 min_length=2,
                 help_text="Provide username.",
-            )
+            ),
+            required=True,
         )
         company = Filter(
             namespace=True,
             children=[
                 Filter(
-                    serializers.IntegerField(min_value=1, required=False),
+                    serializers.IntegerField(min_value=1),
                     lookup="id",
                 ),
                 Filter(
-                    serializers.CharField(min_length=2, required=False),
+                    serializers.CharField(min_length=2),
                     lookup="name",
                 ),
                 Filter(
-                    serializers.DateTimeField(required=False),
+                    serializers.DateTimeField(),
                     param="created",
                     field="company__created",
                     namespace=True,
@@ -114,7 +115,6 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
                             serializers.IntegerField(
                                 min_value=1900,
                                 max_value=2050,
-                                required=False,
                             ),
                             lookup="year",
                         ),
@@ -123,13 +123,13 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             ],
         )
         created = Filter(
-            serializers.DateField(required=False),
+            serializers.DateField(),
             children=[
                 Filter(lookup="gte"),
                 Filter(lookup="lte"),
             ],
         )
-        details = Filter(SomeSerializer(required=False))
+        details = Filter(SomeSerializer())
         missing = Filter()
 
     class UserView(ListAPIView[User]):

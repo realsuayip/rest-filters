@@ -15,7 +15,7 @@ from tests.test_filters import get_filterset_instance
 
 def test_blank_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     instance = get_filterset_instance(SomeFilterSet, query="username=")
     groups, _ = instance.get_groups()
@@ -25,7 +25,7 @@ def test_blank_default() -> None:
 @override_settings(REST_FILTERS={"BLANK": "omit"})
 def test_blank_omit() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     instance = get_filterset_instance(SomeFilterSet, query="username=")
     groups, _ = instance.get_groups()
@@ -53,7 +53,7 @@ def test_blank_keep() -> None:
 
 def test_handle_unknown_parameters_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     instance = get_filterset_instance(SomeFilterSet, query="unrelated=")
     with pytest.raises(serializers.ValidationError) as ctx:
@@ -68,7 +68,7 @@ def test_handle_unknown_parameters_default() -> None:
 @override_settings(REST_FILTERS={"HANDLE_UNKNOWN_PARAMETERS": True})
 def test_handle_unknown_parameters_true() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     instance = get_filterset_instance(SomeFilterSet, query="unrelated=")
     with pytest.raises(serializers.ValidationError) as ctx:
@@ -83,7 +83,7 @@ def test_handle_unknown_parameters_true() -> None:
 @override_settings(REST_FILTERS={"HANDLE_UNKNOWN_PARAMETERS": False})
 def test_handle_unknown_parameters_false() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     instance = get_filterset_instance(SomeFilterSet, query="unrelated=&username=abc")
     _, valuedict = instance.get_groups()
@@ -92,7 +92,7 @@ def test_handle_unknown_parameters_false() -> None:
 
 def test_known_parameters_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     assert SomeFilterSet.options.known_parameters == [
         "page",
@@ -113,7 +113,7 @@ def test_known_parameters_default() -> None:
 )
 def test_known_parameters_default_drf_dynamic_override() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     assert SomeFilterSet.options.known_parameters == [
         "page",
@@ -127,7 +127,7 @@ def test_known_parameters_default_drf_dynamic_override() -> None:
 @override_settings(REST_FILTERS={"KNOWN_PARAMETERS": ["hello", "world"]})
 def test_known_parameters_custom() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     assert SomeFilterSet.options.known_parameters == ["hello", "world"]
 
@@ -135,6 +135,6 @@ def test_known_parameters_custom() -> None:
 @override_settings(REST_FILTERS={"KNOWN_PARAMETERS": []})
 def test_known_parameters_custom_empty() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     assert SomeFilterSet.options.known_parameters == []

@@ -758,9 +758,10 @@ def test_get_groups() -> None:
             aliases={
                 "random_alias": F("username"),
             },
+            required=True,
         )
         created = Filter(
-            serializers.DateField(required=False),
+            serializers.DateField(),
             children=[
                 Filter(lookup="gte"),
                 Filter(lookup="lte"),
@@ -768,7 +769,7 @@ def test_get_groups() -> None:
             group="created_g",
         )
         first_name = Filter(
-            serializers.CharField(required=False, allow_blank=True),
+            serializers.CharField(allow_blank=True),
             children=[
                 Filter(
                     lookup="exact",
@@ -776,7 +777,7 @@ def test_get_groups() -> None:
                 )
             ],
         )
-        last_name = Filter(serializers.CharField(required=False))
+        last_name = Filter(serializers.CharField())
 
     instance = get_filterset_instance(
         SomeFilterSet,
@@ -864,12 +865,12 @@ def test_handle_unknown_parameters() -> None:
 
 def test_get_groups_all_errors_are_merged() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField())
+        username = Filter(serializers.CharField(), required=True)
 
-        first_name = Filter(serializers.CharField(required=False))
-        last_name = Filter(serializers.CharField(required=False))
+        first_name = Filter(serializers.CharField())
+        last_name = Filter(serializers.CharField())
 
-        created = Filter(serializers.DateField(required=False))
+        created = Filter(serializers.DateField())
 
         class Meta:
             constraints = [
@@ -907,8 +908,8 @@ def test_get_groups_all_errors_are_merged() -> None:
 
 def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        first_name = Filter(serializers.CharField(required=False))
-        last_name = Filter(serializers.CharField(required=False))
+        first_name = Filter(serializers.CharField())
+        last_name = Filter(serializers.CharField())
 
         class Meta:
             constraints = [MutuallyExclusive(fields=["first_name", "last_name"])]
@@ -953,7 +954,7 @@ def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
             raise serializers.ValidationError({"first_name": ["Constraint failed"]})
 
     class SomeFilterSet(FilterSet[Any]):
-        first_name = Filter(serializers.CharField())
+        first_name = Filter(serializers.CharField(), required=True)
 
         class Meta:
             constraints = [CustomConstraint()]

@@ -43,6 +43,7 @@ def test_filter_defaults() -> None:
     assert f.template is None
     assert f.method is None
     assert f.noop is False
+    assert f.required is False
 
 
 def test_filter_group_is_valid_identifier() -> None:
@@ -305,9 +306,9 @@ def test_filter_get_serializer() -> None:
 
 def test_filter_get_filterset() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
         created = Filter(
-            serializers.DateTimeField(required=False),
+            serializers.DateTimeField(),
             children=[
                 Filter(param="gte"),
                 Filter(
@@ -337,7 +338,7 @@ def test_filter_get_filterset() -> None:
 
 
 def test_filter_resolve_serializer() -> None:
-    f = serializers.CharField(required=False)
+    f = serializers.CharField()
 
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(
@@ -355,20 +356,22 @@ def test_filter_resolve_serializer() -> None:
     resolved1 = field.resolve_serializer()
     resolved2 = field.children[0].resolve_serializer()
 
-    assert resolved1 == resolved2
+    assert resolved1 is not resolved2
     assert not f.context
     assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
+    assert resolved1 is field._serializer
+    assert resolved2 is not field._serializer
+
     for resolved in [resolved1, resolved2]:
-        assert resolved != f
-        assert resolved == field._serializer
+        assert resolved is not f
         assert isinstance(resolved, serializers.CharField)
         assert resolved.required is False
         assert resolved.context
 
 
 def test_filter_resolve_serializer_dynamic_only() -> None:
-    f = serializers.CharField(required=False)
+    f = serializers.CharField()
 
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(
@@ -430,8 +433,8 @@ def test_filter_resolve_serializer_dynamic_failed_to_resolve_case_nested() -> No
 
 def test_filter_resolve_serializer_replacement() -> None:
     current, replacement = (
-        serializers.CharField(required=False),
-        serializers.CharField(required=False, min_length=27),
+        serializers.CharField(),
+        serializers.CharField(min_length=27),
     )
 
     class SomeFilterSet(FilterSet[Any]):
@@ -461,7 +464,7 @@ def test_filter_resolve_serializer_replacement() -> None:
 
 def test_filter_resolve_serializer_replacement_attr_changed() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
         def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
             serializer = cast(serializers.CharField, serializer)
@@ -482,7 +485,7 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
 
 
 def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
-    f = serializers.CharField(required=False)
+    f = serializers.CharField()
 
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(f)
@@ -524,7 +527,7 @@ def test_filter_run_validation() -> None:
 
 def test_filter_parse_value() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False))
+        username = Filter(serializers.CharField())
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -547,7 +550,7 @@ def test_filter_parse_value() -> None:
 
 def test_filter_parse_value_case_blank_keep() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False), blank="keep")
+        username = Filter(serializers.CharField(), blank="keep")
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -561,7 +564,7 @@ def test_filter_parse_value_case_blank_keep() -> None:
 
 def test_filter_parse_value_initial_string_parsing() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        created = Filter(serializers.DateTimeField(required=False))
+        created = Filter(serializers.DateTimeField())
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -721,7 +724,7 @@ def test_filter_resolve_entry_attrs_child() -> None:
 def test_filter_resolve_entry() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             children=[
                 Filter(param="icontains", lookup="icontains"),
             ],
@@ -742,7 +745,7 @@ def test_filter_resolve_entry() -> None:
 def test_filter_resolve_entry_case_method() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(
-            serializers.CharField(required=False),
+            serializers.CharField(),
             children=[
                 Filter(
                     param="icontains",
@@ -751,7 +754,7 @@ def test_filter_resolve_entry_case_method() -> None:
             ],
             method="get_username",
         )
-        created = Filter(serializers.DateField(required=False), method="get_created")
+        created = Filter(serializers.DateField(), method="get_created")
 
         def get_username(self, param: str, value: str) -> Q:
             return Q(username=value)
@@ -795,7 +798,7 @@ def test_filter_resolve_entry_case_method() -> None:
 
 def test_filter_resolve_entry_case_noop() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        ordering = Filter(serializers.CharField(required=False), noop=True)
+        ordering = Filter(serializers.CharField(), noop=True)
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -808,7 +811,7 @@ def test_filter_resolve_entry_case_noop() -> None:
 
 def test_filter_resolve_entry_case_noop_with_method() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(required=False), method="get_username")
+        username = Filter(serializers.CharField(), method="get_username")
 
         def get_username(self, param: str, value: str) -> Any:
             if value == "do_nothing":
@@ -837,6 +840,7 @@ def test_filter_resolve() -> None:
                     method="get_username_icontains",
                 ),
             ],
+            required=True,
         )
         created = Filter(
             serializers.DateField(),
@@ -844,14 +848,16 @@ def test_filter_resolve() -> None:
             children=[
                 Filter(param="gte", lookup="gte"),
                 Filter(
-                    serializers.DateField(required=False),
+                    serializers.DateField(),
                     param="date",
                     lookup="date",
                     children=[
                         Filter(param="gte", lookup="date__gte"),
                     ],
+                    required=False,
                 ),
             ],
+            required=True,
         )
 
         def get_username_icontains(self, param: str, value: str) -> Q:

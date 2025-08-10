@@ -10,6 +10,7 @@ filters will inherit certain behaviors from its parent:
 
 - The serializer field will be inherited from parent.
 - The database field will be inherited from parent.
+- The ``required`` argument will be inherited from parent.
 - If a group is specified for parent, it will also be inherited, if no group is
   specified, each of the child filters and parent filter will be chained.
 
@@ -30,7 +31,7 @@ Here is an example filter that makes use of child filters:
 .. code-block:: python
 
     created = Filter(
-        serializers.DateField(required=False),
+        serializers.DateField(),
         children=[
             Filter(lookup="gte"),
             Filter(lookup="lte"),
@@ -52,7 +53,7 @@ these parameters a bit more readable by overriding child filters' names:
 .. code-block:: python
 
     created = Filter(
-        serializers.DateField(required=False),
+        serializers.DateField(),
         children=[
             Filter(param="after", lookup="gte"),
             Filter(param="before", lookup="lte"),
@@ -70,7 +71,7 @@ so that only their child filters are available:
 .. code-block:: python
 
     created = Filter(
-        serializers.DateField(required=False),
+        serializers.DateField(),
         namespace=True,
         children=[
             Filter(param="after", lookup="gte"),

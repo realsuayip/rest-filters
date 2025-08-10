@@ -74,7 +74,7 @@ simple filterset that allows searching users by username:
 
 
     class UserFilterSet(FilterSet[User]):
-        username = Filter(serializers.CharField(min_length=2))
+        username = Filter(serializers.CharField(min_length=2), required=True)
 
 This filterset declaration implies a few things:
 
@@ -82,10 +82,9 @@ This filterset declaration implies a few things:
    field will be available during QuerySet filtering.
 2. Since no explicit parameter name is given, the querying will be done using
    ``username`` via API endpoint.
-3. Since only ``min_length`` argument is used, this field will be required and
-   a ``ValidationError`` will be raised if users do not specify the query
-   parameter. This is due to serializer field defaults, and can be changed by
-   providing ``required=False``.
+3. Since ``required=True`` is set, this filter will be required and a
+   ``ValidationError`` will be raised if users do not specify the query
+   parameter. By default, query parameters are not required.
 
 .. note::
 
@@ -172,12 +171,12 @@ users based on their companies, by both company ID and company name.
 .. code-block:: python
 
     class UserFilterSet(FilterSet[User]):
-        username = Filter(serializers.CharField(min_length=2, required=False))
+        username = Filter(serializers.CharField(min_length=2))
         company = Filter(
-            serializers.IntegerField(min_value=1, required=False),
+            serializers.IntegerField(min_value=1),
             children=[
                 Filter(
-                    serializers.CharField(min_length=2, required=False),
+                    serializers.CharField(min_length=2),
                     lookup="name",
                 ),
             ],
@@ -191,9 +190,7 @@ Let's digest the ``company`` filter:
    ``company.name`` query parameter, e.g., ``company.name=google``. This is
    made possible by the ``lookup`` argument, which maps both the model field
    and the query parameter name.
-3. Each filter field is marked with ``required=False``, making all filters
-   optional.
-4. Both parent and child filters use different serializer fields, since they
+3. Both parent and child filters use different serializer fields, since they
    require different types. However, fields for child filters might be omitted,
    in which case they will be inherited from the parent filter.
 
@@ -207,11 +204,11 @@ we can use namespace filters:
         namespace=True,
         children=[
             Filter(
-                serializers.IntegerField(min_value=1, required=False),
+                serializers.IntegerField(min_value=1),
                 lookup="id",
             ),
             Filter(
-                serializers.CharField(min_length=2, required=False),
+                serializers.CharField(min_length=2),
                 lookup="name",
             ),
         ],
@@ -232,16 +229,16 @@ available at the same time. We might force users to only provide ``id`` or
 
 
     class UserFilterSet(FilterSet[User]):
-        username = Filter(serializers.CharField(min_length=2, required=False))
+        username = Filter(serializers.CharField(min_length=2))
         company = Filter(
             namespace=True,
             children=[
                 Filter(
-                    serializers.IntegerField(min_value=1, required=False),
+                    serializers.IntegerField(min_value=1),
                     lookup="id",
                 ),
                 Filter(
-                    serializers.CharField(min_length=2, required=False),
+                    serializers.CharField(min_length=2),
                     lookup="name",
                 ),
             ],
@@ -283,11 +280,11 @@ would be useful:
         namespace=True,
         children=[
             Filter(
-                serializers.CharField(required=False),
+                serializers.CharField(),
                 lookup="name",
             ),
             Filter(
-                serializers.CharField(required=False),
+                serializers.CharField(),
                 lookup="address",
             ),
         ],
@@ -336,20 +333,20 @@ Here is the final ``FilterSet`` with some minor additions for reference:
 .. code-block:: python
 
     class UserFilterSet(FilterSet[User]):
-        username = Filter(serializers.CharField(min_length=2, required=False))
+        username = Filter(serializers.CharField(min_length=2))
         company = Filter(
             namespace=True,
             children=[
                 Filter(
-                    serializers.IntegerField(min_value=1, required=False),
+                    serializers.IntegerField(min_value=1),
                     lookup="id",
                 ),
                 Filter(
-                    serializers.CharField(min_length=2, required=False),
+                    serializers.CharField(min_length=2),
                     lookup="name",
                 ),
                 Filter(
-                    serializers.DateTimeField(required=False),
+                    serializers.DateTimeField(),
                     param="created",
                     field="company__created",
                     namespace=True,
@@ -360,7 +357,6 @@ Here is the final ``FilterSet`` with some minor additions for reference:
                             serializers.IntegerField(
                                 min_value=1900,
                                 max_value=2050,
-                                required=False,
                             ),
                             lookup="year",
                         ),
@@ -373,18 +369,18 @@ Here is the final ``FilterSet`` with some minor additions for reference:
             group="following_companies_group",
             children=[
                 Filter(
-                    serializers.CharField(required=False),
+                    serializers.CharField(),
                     lookup="name",
                 ),
                 Filter(
-                    serializers.CharField(required=False),
+                    serializers.CharField(),
                     param="address",
                     lookup="address__icontains",
                 ),
             ],
         )
         created = Filter(
-            serializers.DateTimeField(required=False),
+            serializers.DateTimeField(),
             namespace=True,
             children=[
                 Filter(lookup="gte"),

@@ -9,13 +9,10 @@ Here is a simple usage:
 .. code-block:: python
 
     class UserFilterSet(FilterSet):
-        role = Filter(
-            serializers.CharField(required=False, default="developer"),
-        )
+        role = Filter(serializers.CharField(default="developer"))
 
 This filterset will only list users with developer role if no explicit role is
-specified. Notice that ``required`` is set to ``False``. This is a common
-occurrence with defaults.
+specified.
 
 .. important::
 
@@ -32,9 +29,7 @@ use of view and request objects. Here is an example:
 .. code-block:: python
 
     class PostFilterSet(FilterSet):
-        feed_type = Filter(
-            serializers.CharField(required=False, default="all_posts"),
-        )
+        feed_type = Filter(serializers.CharField(default="all_posts"))
 
         def get_default(self, param: str, default: Any) -> Any:
             user = self.request.user

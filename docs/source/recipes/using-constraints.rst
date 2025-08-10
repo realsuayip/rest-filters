@@ -96,8 +96,8 @@ For example:
 
 
     class RangeFilterSet(FilterSet):
-        start_date = Filter(serializers.DateTimeField(required=False))
-        end_date = Filter(serializers.DateTimeField(required=False))
+        start_date = Filter(serializers.DateTimeField())
+        end_date = Filter(serializers.DateTimeField())
 
         class Meta:
             constraints = [

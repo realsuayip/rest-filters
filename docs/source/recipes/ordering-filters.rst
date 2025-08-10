@@ -31,7 +31,6 @@ Here is an implementation of a typical ordering field:
                         "-created",
                     ],
                 ),
-                required=False,
                 default=["-id"],
             ),
             noop=True,
@@ -84,7 +83,6 @@ for example:
         ordering = Filter(
             CSVField(
                 child=OrderingField(),
-                required=False,
                 default=[{"value": "id", "direction": "desc"}],
             ),
             noop=True,

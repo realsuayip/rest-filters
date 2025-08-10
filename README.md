@@ -35,26 +35,23 @@ from rest_framework import serializers
 
 
 class UserFilterSet(FilterSet[User]):
-    username = Filter(
-        serializers.CharField(min_length=2, required=False),
-        lookup="icontains",
-    )
+    username = Filter(serializers.CharField(min_length=2), lookup="icontains")
     company = Filter(
         namespace=True,
         children=[
             Filter(
-                serializers.IntegerField(min_value=1, required=False),
+                serializers.IntegerField(min_value=1),
                 lookup="id",
             ),
             Filter(
-                serializers.CharField(min_length=2, required=False),
+                serializers.CharField(min_length=2),
                 lookup="name__icontains",
                 param="name",
             ),
         ],
     )
     created = Filter(
-        serializers.DateTimeField(required=False),
+        serializers.DateTimeField(),
         namespace=True,
         children=[
             Filter(lookup="gte"),

@@ -190,8 +190,8 @@ def test_mutually_exclusive_constraint() -> None:
 
 def test_mutually_exclusive_constraint_case_custom_error_message() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        pasta = Filter(serializers.BooleanField(required=False))
-        ketchup = Filter(serializers.BooleanField(required=False))
+        pasta = Filter(serializers.BooleanField())
+        ketchup = Filter(serializers.BooleanField())
 
         class Meta:
             constraints = [
@@ -249,8 +249,8 @@ def test_mutually_inclusive_constraint() -> None:
 
 def test_mutually_inclusive_constraint_case_custom_error_message() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        pasta = Filter(serializers.BooleanField(required=False))
-        olive_oil_ml = Filter(serializers.IntegerField(required=False))
+        pasta = Filter(serializers.BooleanField())
+        olive_oil_ml = Filter(serializers.IntegerField())
 
         class Meta:
             constraints = [
@@ -320,8 +320,8 @@ def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> No
             )
 
     class SomeFilterSet(FilterSet[Any]):
-        first_name = Filter(serializers.CharField(required=False))
-        last_name = Filter(serializers.CharField(required=False))
+        first_name = Filter(serializers.CharField())
+        last_name = Filter(serializers.CharField())
         created = Filter(
             serializers.DateTimeField(default_timezone=zoneinfo.ZoneInfo(key="UTC")),
             children=[Filter(param="gte", lookup="gte")],
@@ -355,7 +355,7 @@ def test_constraint_gives_access_to_all_fields() -> None:
             assert values == expected
 
     class SomeFilterSet(FilterSet[Any]):
-        a = Filter(serializers.CharField(required=False))
+        a = Filter(serializers.CharField())
         b = Filter(serializers.IntegerField())
         created = Filter(
             serializers.DateTimeField(default_timezone=zoneinfo.ZoneInfo("UTC")),
