@@ -20,7 +20,11 @@ __all__ = [
 
 class FilterBackend(filters.BaseFilterBackend):
     def _get_filterset_class(self, view: APIView) -> type[FilterSet[Any]] | None:
-        if klass := getattr(view, "filterset_class", None):
+        from rest_filters import FilterSet
+
+        if (klass := getattr(view, "filterset_class", None)) and issubclass(
+            klass, FilterSet
+        ):
             return klass  # type: ignore[no-any-return]
         try:
             return view.get_filterset_class()  # type: ignore[no-any-return, attr-defined]
