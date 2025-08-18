@@ -7,7 +7,7 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, Generic, Literal, final
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, final
 
 from django.db.models import QuerySet
 from django.http import QueryDict
@@ -26,6 +26,10 @@ from rest_filters.utils import AnyField, NotSet, _MT_co, merge_errors, notset
 
 if TYPE_CHECKING:
     from rest_framework.fields import _Empty
+
+
+Entries: TypeAlias = dict[str, Entry]
+Groups: TypeAlias = dict[str, Entries]
 
 
 @final
@@ -203,13 +207,13 @@ class FilterSet(Generic[_MT_co]):
     def get_known_parameters(self) -> list[str]:
         return self.options.known_parameters
 
-    def get_groups(self) -> tuple[dict[str, dict[str, Entry]], dict[str, Any]]:
+    def get_groups(self) -> tuple[Groups, dict[str, Any]]:
         params, fields, known_parameters = (
             self.get_query_params(),
             self.get_fields(),
             self.get_known_parameters(),
         )
-        groupdict: dict[str, dict[str, Entry]]
+        groupdict: Groups
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
         for _, field in fields.items():
             try:
@@ -249,11 +253,44 @@ class FilterSet(Generic[_MT_co]):
         self,
         queryset: QuerySet[_MT_co],
         group: str,
-        entries: dict[str, Entry],
+        entries: Entries,
     ) -> QuerySet[_MT_co]:
         return self.add_to_queryset(queryset, self.get_group_entry(group, entries))
 
-    def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
+    def _resolve_group_namespace(
+        self,
+        root: str,
+        groups: Groups,
+    ) -> Entry:
+        children, ns = {}, []
+        for name, entries in groups.items():
+            if not name.startswith(root):
+                continue
+            namespace, *sub = name.split(".")
+            if sub:
+                namespace += "." + sub[0]
+            if namespace == root:
+                children[name] = self.get_group_entry(name, entries)
+                continue
+            ns.append(namespace)
+        for child in list(dict.fromkeys(ns)):
+            children[child] = self._resolve_group_namespace(child, groups)
+        if len(children) == 1:
+            return next(iter(children.values()))
+        return self.get_group_entry(f"@{root}", children)
+
+    def filter_group_namespace(
+        self,
+        queryset: QuerySet[_MT_co],
+        root: str,
+        groups: Groups,
+    ) -> QuerySet[_MT_co]:
+        return self.add_to_queryset(
+            queryset,
+            self._resolve_group_namespace(root, groups),
+        )
+
+    def get_group_entry(self, group: str, entries: Entries) -> Entry:
         """
         Resolve Entry for the given group.
 
@@ -294,8 +331,17 @@ class FilterSet(Generic[_MT_co]):
         for entry in groupdict.pop("chain", {}).values():
             queryset = self.add_to_queryset(queryset, entry)
 
+        ns: defaultdict[str, Groups] = defaultdict(dict)
         for name, entries in groupdict.items():
-            queryset = self.filter_group(queryset, name, entries)
+            root, *_ = name.split(".", maxsplit=1)
+            ns[root][name] = entries
+
+        for root, groups in ns.items():
+            if len(groups) == 1:
+                root, entries = next(iter(groups.items()))
+                queryset = self.filter_group(queryset, root, entries)
+            else:
+                queryset = self.filter_group_namespace(queryset, root, groups)
         return self.get_queryset(queryset, valuedict)
 
     def get_queryset(

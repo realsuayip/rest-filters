@@ -14,3 +14,6 @@ class User(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     following_companies = models.ManyToManyField(Company)
+
+    role = models.CharField(max_length=10)
+    location = models.TextField()

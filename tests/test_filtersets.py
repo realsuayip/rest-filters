@@ -690,6 +690,198 @@ def test_filter_queryset_case_related_mixed() -> None:
     assert query.count("INNER JOIN") == 3
 
 
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names.username")
+        first_name = Filter(serializers.CharField(), group="names.first_name")
+        last_name = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    expected = User.objects.filter(last_name="doe").filter(
+        Q(username="hello") & Q(first_name="john"),
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_with_single_group() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names.g")
+        first_name = Filter(serializers.CharField(), group="names.g")
+        last_name = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    expected = User.objects.filter(last_name="doe").filter(
+        Q(username="hello") & Q(first_name="john"),
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_complex() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="personal")
+        first_name = Filter(serializers.CharField(), group="personal.detail")
+        last_name = Filter(serializers.CharField(), group="personal.detail")
+
+        class Meta:
+            combinators = {
+                "@personal": operator.or_,
+            }
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    expected = User.objects.filter(
+        Q(username="hello") | (Q(first_name="john") & Q(last_name="doe")),
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_complex2() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="personal.info")
+
+        role1 = Filter(serializers.CharField(), field="role", group="personal.role")
+        role2 = Filter(serializers.CharField(), field="role", group="personal.role")
+
+        location1 = Filter(
+            serializers.CharField(), field="location", group="personal.location"
+        )
+        location2 = Filter(
+            serializers.CharField(), field="location", group="personal.location"
+        )
+
+        class Meta:
+            combinators = {
+                "personal.role": operator.or_,
+                "personal.location": operator.or_,
+            }
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello"
+        "&role1=some_role"
+        "&role2=some_other_role"
+        "&location1=some_location"
+        "&location2=some_other_location",
+    )
+    expected = User.objects.filter(
+        Q(username="hello")
+        & (Q(role="some_role") | Q(role="some_other_role"))
+        & (Q(location="some_location") | Q(location="some_other_location"))
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_complex3() -> None:
+    seen = []
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="personal.info")
+
+        role1 = Filter(serializers.CharField(), field="role", group="personal.s.role")
+        role2 = Filter(serializers.CharField(), field="role", group="personal.s.role")
+
+        location1 = Filter(
+            serializers.CharField(), field="location", group="personal.s.location"
+        )
+        location2 = Filter(
+            serializers.CharField(), field="location", group="personal.s.location"
+        )
+
+        class Meta:
+            combinators = {
+                "@personal": operator.or_,
+                "@personal.s": operator.and_,
+                "personal.s.role": operator.or_,
+                "personal.s.location": operator.or_,
+            }
+
+        def get_group_entry(self, group: str, value: Any) -> Entry:
+            seen.append(group)
+            return super().get_group_entry(group, value)
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello"
+        "&role1=some_role"
+        "&role2=some_other_role"
+        "&location1=some_location"
+        "&location2=some_other_location",
+    )
+    expected = User.objects.filter(
+        Q(username="hello")
+        | (
+            (Q(role="some_role") | Q(role="some_other_role"))
+            & (Q(location="some_location") | Q(location="some_other_location"))
+        )
+    )
+    queryset = instance.filter_queryset()
+    assert str(queryset.query) == str(expected.query)
+    assert seen == [
+        "personal.info",
+        "personal.s.role",
+        "personal.s.location",
+        "@personal.s",
+        "@personal",
+    ]
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_complex4() -> None:
+    seen = []
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="personal.x")
+        first_name = Filter(serializers.CharField(), group="personal.x.z")
+
+        def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
+            seen.append(group)
+            return super().get_group_entry(group, entries)
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=hello&first_name=john"
+    )
+    instance.filter_queryset()
+    assert seen == [
+        "personal.x",
+        "personal.x.z",
+        "@personal.x",
+    ]
+
+
+@pytest.mark.django_db
+def test_filter_queryset_case_namespace_complex5() -> None:
+    seen = []
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="personal.x")
+        first_name = Filter(serializers.CharField(), group="personal.x.z")
+
+        def get_group_entry(self, group: str, entries: dict[str, Entry]) -> Entry:
+            seen.append(group)
+            return super().get_group_entry(group, entries)
+
+    instance = get_filterset_instance(SomeFilterSet, query="username=hello")
+    instance.filter_queryset()
+    assert seen == ["personal.x"]
+
+
 def test_filter_queryset_case_noop() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(), group="names", noop=True)

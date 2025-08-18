@@ -131,7 +131,11 @@ class Filter:
         self.lookup = lookup
         self.template = template
 
-        if group is not None and not group.isidentifier():
+        if group is not None and (
+            group.startswith(".")
+            or group.endswith(".")
+            or not all(sub.isidentifier() for sub in group.split("."))
+        ):
             raise ValueError("Group names must be valid Python identifiers")
         if blank is not None and blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
