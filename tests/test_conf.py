@@ -138,3 +138,22 @@ def test_known_parameters_custom_empty() -> None:
         username = Filter(serializers.CharField())
 
     assert SomeFilterSet.options.known_parameters == []
+
+
+def test_default_group_default() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet, query="username=hello")
+    groups, _ = instance.get_groups()
+    assert list(groups) == ["chain"]
+
+
+@override_settings(REST_FILTERS={"DEFAULT_GROUP": "custom"})
+def test_default_group_custom() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(SomeFilterSet, query="username=hello")
+    groups, _ = instance.get_groups()
+    assert list(groups) == ["custom"]

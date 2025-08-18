@@ -36,6 +36,7 @@ Groups: TypeAlias = dict[str, Entries]
 class Options:
     __slots__ = (
         "_blank",
+        "_default_group",
         "_extend_known_parameters",
         "_handle_unknown_parameters",
         "_known_parameters",
@@ -54,6 +55,7 @@ class Options:
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
         blank: Literal["keep", "omit"] | NotSet = notset,
+        default_group: str | NotSet = notset,
     ) -> None:
         """
         The following parameters can be used as class attributes in
@@ -78,6 +80,7 @@ class Options:
         self._extend_known_parameters = extend_known_parameters
         self._handle_unknown_parameters = handle_unknown_parameters
         self._blank = blank
+        self._default_group = default_group
 
         if constraints is notset:
             constraints = []
@@ -109,6 +112,12 @@ class Options:
             return app_settings.BLANK
         return self._blank
 
+    @property
+    def default_group(self) -> str:
+        if self._default_group is notset:
+            return app_settings.DEFAULT_GROUP
+        return self._default_group
+
 
 class FilterSet(Generic[_MT_co]):
     options: Options
@@ -134,6 +143,7 @@ class FilterSet(Generic[_MT_co]):
             "fields",
             "constraints",
             "combinators",
+            "default_group",
             "known_parameters",
             "extend_known_parameters",
             "handle_unknown_parameters",

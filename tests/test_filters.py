@@ -152,6 +152,11 @@ def test_filter_descriptor_sets_name() -> None:
 
 
 def test_filter_get_group() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        pass
+
+    filterset = get_filterset_instance(SomeFilterSet)
+
     f1, f2 = (
         Filter(),
         Filter(group="f2_group"),
@@ -164,6 +169,9 @@ def test_filter_get_group() -> None:
 
     f3 = Filter(children=[f3_child_1, f3_child_2], group="f3_parent_group")
     f4 = Filter(children=[f4_child_1])
+
+    for f in (f1, f2, f3, f4, f3_child_1, f3_child_2, f4_child_1):
+        f._filterset = filterset
 
     assert f1.get_group() == "chain"
     assert f2.get_group() == "f2_group"
@@ -717,6 +725,11 @@ def test_entry_repr() -> None:
     ],
 )
 def test_filter_resolve_entry_attrs(f: Filter, entry: Entry) -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        pass
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    f._filterset = filterset
     assert f.resolve_entry_attrs("value") == entry
 
 

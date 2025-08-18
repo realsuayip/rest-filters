@@ -64,6 +64,12 @@ class AppSettings:
     """
     Decides whether to handle unknown parameters.
     """
+    DEFAULT_GROUP: str = "chain"
+    """
+    The default group for filters. By default, this is set to the reserved
+    group ``chain``, which will chain ``filter()`` calls for each resolved
+    query expression.
+    """
 
     def __getattribute__(self, __name: str) -> Any:
         user_settings = getattr(settings, "REST_FILTERS", {})

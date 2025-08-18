@@ -35,6 +35,7 @@ def test_filterset_options() -> None:
             combinators = {"group": operator.or_}
             constraints = (MutuallyExclusive(fields=["username", "created"]),)
             blank = "keep"
+            default_group = "custom"
 
     options = SomeFilterSet.options
     assert isinstance(options, Options)
@@ -44,6 +45,7 @@ def test_filterset_options() -> None:
     assert options.handle_unknown_parameters is True
     assert options.combinators == {"group": operator.or_}
     assert options.blank == "keep"
+    assert options.default_group == "custom"
 
     assert len(options.constraints) == 1
     assert isinstance(options.constraints[0], MutuallyExclusive)
@@ -70,6 +72,7 @@ def test_filterset_options_no_meta() -> None:
     assert options.combinators == {}
     assert options.constraints == []
     assert options.blank == "omit"
+    assert options.default_group == "chain"
 
 
 def test_filterset_options_partial_meta() -> None:

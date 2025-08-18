@@ -229,7 +229,8 @@ class Filter:
             return self._group
         elif self.parent is not None:
             return self.parent.get_group()
-        return "chain"
+        filterset = self.get_filterset()
+        return filterset.options.default_group
 
     def get_db_field(self) -> str | BaseExpression | Combinable:
         if self.parent and self._field is None:
