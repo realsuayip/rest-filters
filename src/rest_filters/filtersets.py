@@ -333,7 +333,7 @@ class FilterSet(Generic[_MT_co]):
 
         ns: defaultdict[str, Groups] = defaultdict(dict)
         for name, entries in groupdict.items():
-            root, *_ = name.split(".", maxsplit=1)
+            root = name.split(".", maxsplit=1)[0]
             ns[root][name] = entries
 
         for root, groups in ns.items():
