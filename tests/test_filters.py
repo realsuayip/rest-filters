@@ -584,6 +584,7 @@ def test_filter_parse_value_initial_string_parsing() -> None:
 
 def test_entry_repr() -> None:
     entry = Entry(
+        group="chain",
         aliases={
             "field": F("field"),
         },
@@ -604,24 +605,37 @@ def test_entry_repr() -> None:
         # Field names
         (
             Filter(field="username"),
-            Entry(value="value", expression=Q(username="value")),
+            Entry(group="chain", value="value", expression=Q(username="value")),
         ),
         (
             Filter(field="username", lookup="icontains"),
-            Entry(value="value", expression=Q(username__icontains="value")),
+            Entry(
+                group="chain",
+                value="value",
+                expression=Q(username__icontains="value"),
+            ),
         ),
         (
             Filter(field="username", lookup="icontains", negate=True),
-            Entry(value="value", expression=~Q(username__icontains="value")),
+            Entry(
+                group="chain",
+                value="value",
+                expression=~Q(username__icontains="value"),
+            ),
         ),
         # Templates
         (
             Filter(template=Q("username") | Q("email")),
-            Entry(value="value", expression=Q(username="value") | Q(email="value")),
+            Entry(
+                group="chain",
+                value="value",
+                expression=Q(username="value") | Q(email="value"),
+            ),
         ),
         (
             Filter(template=Q("username__icontains") | Q("email__contains")),
             Entry(
+                group="chain",
                 value="value",
                 expression=Q(username__icontains="value") | Q(email__contains="value"),
             ),
@@ -629,6 +643,7 @@ def test_entry_repr() -> None:
         (
             Filter(template=Q("username") | Q("email"), negate=True),
             Entry(
+                group="chain",
                 value="value",
                 expression=~(Q(username="value") | Q(email="value")),
             ),
@@ -637,6 +652,7 @@ def test_entry_repr() -> None:
         (
             Filter(param="username", field=Length("username")),
             Entry(
+                group="chain",
                 value="value",
                 expression=Q(_default_alias_username="value"),
                 aliases={
@@ -647,6 +663,7 @@ def test_entry_repr() -> None:
         (
             Filter(param="username", field=Length("username"), lookup="gte"),
             Entry(
+                group="chain",
                 value="value",
                 expression=Q(_default_alias_username__gte="value"),
                 aliases={
@@ -662,6 +679,7 @@ def test_entry_repr() -> None:
                 negate=True,
             ),
             Entry(
+                group="chain",
                 value="value",
                 expression=~Q(_default_alias_username_length__gte="value"),
                 aliases={
@@ -672,6 +690,7 @@ def test_entry_repr() -> None:
         (
             Filter(param="username", field=F("username")),
             Entry(
+                group="chain",
                 value="value",
                 expression=Q(_default_alias_username="value"),
                 aliases={
@@ -686,6 +705,7 @@ def test_entry_repr() -> None:
                 aliases={"my_email_alias": F("email")},
             ),
             Entry(
+                group="chain",
                 value="value",
                 expression=Q(_default_alias_username="value"),
                 aliases={
@@ -739,7 +759,7 @@ def test_filter_resolve_entry() -> None:
     entry = username.resolve_entry(QueryDict("username=hello"))
     username.resolve_entry_attrs.assert_called_once_with("hello")
 
-    assert entry == Entry(value="hello", expression=Q(username="hello"))
+    assert entry == Entry(group="chain", value="hello", expression=Q(username="hello"))
 
 
 def test_filter_resolve_entry_case_method() -> None:
@@ -780,11 +800,13 @@ def test_filter_resolve_entry_case_method() -> None:
 
     username_entry = username.resolve_entry(query)
     username.resolve_entry_attrs.assert_not_called()
-    assert username_entry == Entry(value="hello", expression=Q(username="hello"))
+    assert username_entry == Entry(
+        group="chain", value="hello", expression=Q(username="hello")
+    )
 
     username_contains_entry = username.children[0].resolve_entry(query)
     assert username_contains_entry == Entry(
-        value="heyo", expression=Q(username__icontains="heyo")
+        group="chain", value="heyo", expression=Q(username__icontains="heyo")
     )
 
     created_entry = created.resolve_entry(query)
@@ -806,7 +828,7 @@ def test_filter_resolve_entry_case_noop() -> None:
     ordering._filterset = filterset
 
     entry = ordering.resolve_entry(QueryDict("ordering=id"))
-    assert entry == Entry(value="id", expression=None)
+    assert entry == Entry(group="chain", value="id", expression=None)
 
 
 def test_filter_resolve_entry_case_noop_with_method() -> None:
@@ -824,10 +846,12 @@ def test_filter_resolve_entry_case_noop_with_method() -> None:
     ordering._filterset = filterset
 
     entry = ordering.resolve_entry(QueryDict("username=jack52"))
-    assert entry == Entry(value="jack52", expression=Q(username="jack52"))
+    assert entry == Entry(
+        group="chain", value="jack52", expression=Q(username="jack52")
+    )
 
     entry2 = ordering.resolve_entry(QueryDict("username=do_nothing"))
-    assert entry2 == Entry(value="do_nothing", expression=notset)
+    assert entry2 == Entry(group="chain", value="do_nothing", expression=notset)
 
 
 def test_filter_resolve() -> None:
@@ -878,7 +902,7 @@ def test_filter_resolve() -> None:
     entries, errors = username.resolve(query)
     assert entries == {
         "username.icontains": Entry(
-            value="hello", expression=Q(username__icontains="hello")
+            group="chain", value="hello", expression=Q(username__icontains="hello")
         )
     }
     assert errors == {
@@ -890,9 +914,9 @@ def test_filter_resolve() -> None:
         QueryDict("username=abc&username.icontains=hello")
     )
     assert entries == {
-        "username": Entry(value="abc", expression=Q(username="abc")),
+        "username": Entry(group="chain", value="abc", expression=Q(username="abc")),
         "username.icontains": Entry(
-            value="hello", expression=Q(username__icontains="hello")
+            group="chain", value="hello", expression=Q(username__icontains="hello")
         ),
     }
     assert errors == {}
@@ -915,6 +939,7 @@ def test_filter_resolve() -> None:
     assert entries == {
         "created.date": None,
         "created.date.gte": Entry(
+            group="chain",
             value=datetime.date(2024, 1, 1),
             expression=Q(created__date__gte=datetime.date(2024, 1, 1)),
         ),

@@ -298,9 +298,11 @@ def test_filterset_get_group_entry() -> None:
     entry = instance.get_group_entry(
         "group",
         {
-            "username": Entry(value="hello", expression=Q(username="hello")),
+            "username": Entry(
+                group="chain", value="hello", expression=Q(username="hello")
+            ),
             "username.icontains": Entry(
-                value="hello", expression=Q(username__icontains="hello")
+                group="chain", value="hello", expression=Q(username__icontains="hello")
             ),
         },
     )
@@ -322,9 +324,11 @@ def test_filterset_get_default_group_expression_case_custom_combinator() -> None
     entry = instance.get_group_entry(
         "group",
         {
-            "username": Entry(value="hello", expression=Q(username="hello")),
+            "username": Entry(
+                group="chain", value="hello", expression=Q(username="hello")
+            ),
             "username.icontains": Entry(
-                value="hello", expression=Q(username__icontains="hello")
+                group="chain", value="hello", expression=Q(username__icontains="hello")
             ),
         },
     )
@@ -347,16 +351,19 @@ def test_filterset_get_default_group_expression_case_aliases() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
                 aliases={"some_alias": Value("some")},
             ),
             "username.icontains": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username__icontains="hello"),
                 aliases={"other_alias": Value("öther")},
             ),
             "username.startswith": Entry(
+                group="chain",
                 value="hello2",
                 expression=Q(username__startswith="hello2"),
             ),
@@ -388,7 +395,7 @@ def test_filterset_add_to_queryset() -> None:
     outcome = User.objects.filter(Q(username__icontains="hello"))
     queryset = instance.add_to_queryset(
         User.objects.all(),
-        Entry(value="hello", expression=Q(username__icontains="hello")),
+        Entry(group="chain", value="hello", expression=Q(username__icontains="hello")),
     )
     assert str(queryset.query) == str(outcome.query)
 
@@ -406,6 +413,7 @@ def test_filterset_add_to_queryset_case_alias() -> None:
     queryset = instance.add_to_queryset(
         User.objects.all(),
         Entry(
+            group="chain",
             value="hello",
             aliases={"name": Concat(Value("user"), F("username"))},
             expression=Q(name__icontains="hello"),
@@ -422,7 +430,7 @@ def test_filterset_add_to_queryset_case_noop() -> None:
     instance = get_filterset_instance(SomeFilterSet)
     queryset = instance.add_to_queryset(
         original,
-        Entry(value="hello", expression=None),
+        Entry(group="chain", value="hello", expression=None),
     )
     assert queryset is original
     assert "WHERE" not in str(queryset.query)
@@ -440,10 +448,12 @@ def test_filterset_filter_group() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
             ),
             "username.icontains": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username__icontains="hello"),
             ),
@@ -462,6 +472,7 @@ def test_get_group_entry() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
                 aliases={
@@ -469,6 +480,7 @@ def test_get_group_entry() -> None:
                 },
             ),
             "first_name.icontains": Entry(
+                group="chain",
                 value="john",
                 expression=Q(first_name__icontains="john"),
                 aliases={
@@ -506,6 +518,7 @@ def test_get_group_entry_case_combinator() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
                 aliases={
@@ -513,6 +526,7 @@ def test_get_group_entry_case_combinator() -> None:
                 },
             ),
             "first_name.icontains": Entry(
+                group="chain",
                 value="john",
                 expression=Q(first_name__icontains="john"),
                 aliases={
@@ -545,10 +559,12 @@ def test_get_group_entry_case_no_alias() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
             ),
             "first_name.icontains": Entry(
+                group="chain",
                 value="john",
                 expression=Q(first_name__icontains="john"),
             ),
@@ -575,10 +591,12 @@ def test_get_group_entry_case_noop() -> None:
         "group",
         {
             "username": Entry(
+                group="chain",
                 value="hello",
                 expression=Q(username="hello"),
             ),
             "first_name": Entry(
+                group="chain",
                 value="john",
                 expression=Q(),
             ),

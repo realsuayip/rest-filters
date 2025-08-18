@@ -32,7 +32,7 @@ class Entry:
     def __init__(
         self,
         *,
-        group: str = "chain",
+        group: str,
         aliases: dict[str, Any] | None = None,
         value: Any,
         expression: Any,
