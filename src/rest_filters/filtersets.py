@@ -75,6 +75,8 @@ class Options:
          operator for given groups. The default operator for groups is
          ``operator.and_``.
         :param blank: Overrides :py:attr:`rest_filters.conf.AppSettings.BLANK`
+        :param default_group:
+         Overrides :py:attr:`rest_filters.conf.AppSettings.DEFAULT_GROUP`
         """
         self._known_parameters = known_parameters
         self._extend_known_parameters = extend_known_parameters
