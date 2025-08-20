@@ -25,7 +25,8 @@ The alternative way is to chain filter calls for each condition:
 
 The above example is the default behavior if no group is specified. To be
 specific, a default, reserved group called "chain" is supplied for you, which
-chains each expression.
+chains each expression. The default group can be changed on a per-Filterset
+basis via meta options or globally.
 
 Ultimately, both of these queries will find Geometry objects that are **red
 triangles**. However, when filtering on fields with multi-valued relationships,
