@@ -5,3 +5,4 @@ Field Reference
 query parameters easier.
 
 .. autoclass:: rest_filters.fields.CSVField
+    :exclude-members: __new__, __init__

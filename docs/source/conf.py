@@ -22,7 +22,8 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 
-autoclass_content = "both"
+autoclass_content = "class"
+autodoc_class_signature = "separated"
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
