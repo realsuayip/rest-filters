@@ -25,6 +25,7 @@ Introduction
     recipes/search-filters
     recipes/method-filters
     recipes/ordering-filters
+    recipes/using-subgroups
 
 .. toctree::
     :hidden:
