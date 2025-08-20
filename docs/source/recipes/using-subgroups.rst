@@ -158,7 +158,7 @@ users, so they will decide which group gets which combinator:
         ) -> Callable[..., Any]:
             lookups = {"and": operator.and_, "or": operator.or_}
             if group in ("user.contact", "user.location"):
-                name = group.rsplit(".", maxsplit=1)[-1]  # e.g., "contact", "location"
+                name = group.split(".")[-1]  # e.g., "contact", "location"
                 if combine := entries.get(f"{name}.combine"):
                     return lookups[combine.value]
             if group == "@user":
