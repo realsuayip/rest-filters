@@ -81,9 +81,7 @@ The return value of the method can either be a query expression such as ``Q``,
 ``Exists``, ``Case`` etc., an ``Entry`` object or ``None``. You may choose to
 return an ``Entry`` in following cases:
 
-- You need to dynamically change the resolved group. Notice that returning an
-  ``Entry`` object **without specifying group will force filter chaining**,
-  regardless of filter definition.
+- You need to dynamically change the resolved group.
 - You need to specify some aliases.
 - You need to change the value to something else. This might rarely be useful
   for constraints, since they work on resolved values. Similarly
@@ -133,6 +131,7 @@ Here is another example:
                 )
             expr = Q(flag_count__gte=20)
             return Entry(
+                group="chain",
                 aliases={
                     "flag_count": Count("flags"),
                 },
