@@ -83,9 +83,9 @@ the following query instead:
         (Q(website="alan") | Q(email="alan"))
     )
 
-This is slightly different, as you may remember from :ref:`using-groups`.
-However, we have something more useful here: we can now control the operator
-between different groups. For example:
+This is slightly different, as you may remember from :ref:`using-groups`. Also,
+we have something more useful here: we can now control the operator between
+different groups. For example:
 
 .. code-block:: python
 
@@ -103,11 +103,11 @@ Resulting in:
     (Q(city="New") & Q(country="USA")) | (Q(website="alan") & Q(email="alan"))
     #              ^ user.location     ^ @user              ^ user.contact
 
-Notice that we used ``@`` prefix to denote the combinator between subgroups of
-that namespace. If we used ``user`` instead of ``@user``, that would refer to a
-concrete group called ``user`` which is non-existent in this example.
+Notice that we used ``@`` prefix to reference the combinator between subgroups
+of that namespace. If we used ``user`` instead of ``@user``, that would refer
+to a concrete group called ``user`` which is non-existent in this example.
 
-.. important::
+.. note::
 
     You can also use namespaces as group names, however this is not recommended
     since it might lead to confusion.
