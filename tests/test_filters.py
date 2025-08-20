@@ -9,7 +9,6 @@ from django.http import QueryDict
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
-from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
 import pytest
@@ -24,8 +23,8 @@ T = TypeVar("T", bound=FilterSet[Any])
 
 def get_filterset_instance(klass: type[T], *, query: str = "") -> T:
     factory = APIRequestFactory()
-    request = Request(factory.get(f"/?{query}"))
     view = UserView(format_kwarg="format")
+    request = view.initialize_request(factory.get(f"/?{query}"))
     view.setup(request)
     return klass(request, view.queryset, view)
 
