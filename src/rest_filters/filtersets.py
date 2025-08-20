@@ -7,7 +7,15 @@ import operator
 from collections import defaultdict
 from collections.abc import Sequence
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, Generic, Literal, TypeAlias, final
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Literal,
+    TypeAlias,
+    final,
+)
 
 from django.db.models import QuerySet
 from django.http import QueryDict
@@ -302,6 +310,18 @@ class FilterSet(Generic[_MT_co]):
             self._resolve_group_namespace(root, groups),
         )
 
+    def get_combinator(self, group: str, entries: Entries) -> Callable[..., Any]:
+        """
+        Resolve the logical operator for the given group.
+
+        :param group: Name of the group that is currently being resolved.
+        :param entries: Query parameters belonging to this group, with their
+         corresponding Entry.
+        :return: A callable that acts like a logical operator,
+         such as ``operator.or_`` and ``operator.and_``
+        """
+        return self.options.combinators.get(group, operator.and_)  # type: ignore[no-any-return]
+
     def get_group_entry(self, group: str, entries: Entries) -> Entry:
         """
         Resolve Entry for the given group.
@@ -310,7 +330,7 @@ class FilterSet(Generic[_MT_co]):
         :param entries: Query parameters belonging to this group, with their
          corresponding Entry.
         """
-        combinator = self.options.combinators.get(group, operator.and_)
+        combinator = self.get_combinator(group, entries)
         expressions = [
             entry.expression
             for entry in entries.values()

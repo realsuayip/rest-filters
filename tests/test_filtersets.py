@@ -1,6 +1,6 @@
 import datetime
 import operator
-from typing import Any
+from typing import Any, Callable
 
 from django.db.models import F, Q, Value
 from django.db.models.functions import Concat
@@ -15,7 +15,7 @@ import pytest
 from rest_filters import Filter, FilterSet
 from rest_filters.constraints import Constraint, MutuallyExclusive
 from rest_filters.filters import Entry
-from rest_filters.filtersets import Options
+from rest_filters.filtersets import Entries, Options
 from rest_filters.utils import notset
 from tests.test_filters import get_filterset_instance
 from tests.testapp.models import User
@@ -463,6 +463,51 @@ def test_filterset_filter_group() -> None:
         },
     )
     assert str(queryset.query) == str(outcome.query)
+
+
+@pytest.mark.django_db
+def test_get_combinator() -> None:
+    g = {}
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            group="names",
+        )
+        first_name = Filter(
+            serializers.CharField(),
+            group="names",
+        )
+
+        def get_combinator(self, group: str, entries: Entries) -> Callable[..., Any]:
+            g[group] = entries
+            return operator.or_
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john",
+    )
+    queryset = instance.filter_queryset()
+    expected = User.objects.filter(
+        Q(username="hello") | Q(first_name="john"),
+    )
+    assert g == {
+        "names": {
+            "username": Entry(
+                group="names",
+                aliases=None,
+                value="hello",
+                expression=Q(username="hello"),
+            ),
+            "first_name": Entry(
+                group="names",
+                aliases=None,
+                value="john",
+                expression=Q(first_name="john"),
+            ),
+        }
+    }
+    assert str(queryset.query) == str(expected.query)
 
 
 def test_get_group_entry() -> None:
