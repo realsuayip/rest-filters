@@ -1,4 +1,4 @@
-Getting started
+Getting Started
 ===============
 
 In the following mini-tutorial, we will learn how to make use of some
