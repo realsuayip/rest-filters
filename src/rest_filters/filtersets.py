@@ -36,6 +36,10 @@ if TYPE_CHECKING:
     from rest_framework.fields import _Empty
 
 
+__all__ = [
+    "FilterSet",
+]
+
 Entries: TypeAlias = dict[str, Entry]
 Groups: TypeAlias = dict[str, Entries]
 

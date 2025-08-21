@@ -3,6 +3,10 @@ from typing import Any
 
 from rest_framework import serializers
 
+__all__ = [
+    "CSVField",
+]
+
 
 class CSVField(serializers.ListField):
     """
