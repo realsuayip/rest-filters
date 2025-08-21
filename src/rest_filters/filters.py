@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 from django.db.models.expressions import BaseExpression, Combinable
@@ -91,7 +91,7 @@ class Filter:
         param: str | None = None,
         children: list[Filter] | None = None,
         namespace: bool = False,
-        blank: Literal["keep", "omit"] | None = None,
+        blank: str | None = None,
         noop: bool = False,
         required: bool | None = None,
     ) -> None:
@@ -207,7 +207,7 @@ class Filter:
         self.name = name
 
     @property
-    def blank(self) -> Literal["keep", "omit"]:
+    def blank(self) -> str:
         if self._blank is None:
             filterset = self.get_filterset()
             return filterset.options.blank

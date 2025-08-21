@@ -74,7 +74,7 @@ def test_filter_group_chain_used_as_subgroup() -> None:
 
 def test_filter_blank_invalid_choice() -> None:
     with pytest.raises(ValueError, match="blank must either be 'keep' or 'omit'"):
-        Filter(blank="empty")  # type: ignore[arg-type]
+        Filter(blank="empty")
 
     f1 = Filter(blank="keep")
     f2 = Filter(blank="omit")

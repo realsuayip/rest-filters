@@ -12,7 +12,6 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Literal,
     TypeAlias,
     final,
 )
@@ -66,7 +65,7 @@ class Options:
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
-        blank: Literal["keep", "omit"] | NotSet = notset,
+        blank: str | NotSet = notset,
         default_group: str | NotSet = notset,
     ) -> None:
         """
@@ -121,7 +120,7 @@ class Options:
         return self._handle_unknown_parameters
 
     @property
-    def blank(self) -> Literal["keep", "omit"]:
+    def blank(self) -> str:
         if self._blank is notset:
             return app_settings.BLANK
         return self._blank
