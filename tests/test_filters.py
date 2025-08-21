@@ -45,9 +45,31 @@ def test_filter_defaults() -> None:
     assert f.required is False
 
 
-def test_filter_group_is_valid_identifier() -> None:
+@pytest.mark.parametrize(
+    "group",
+    (
+        "not-a-valid-identifier",
+        "2invalid",
+        "invalid.2",
+        "invalid$",
+        "@invalid",
+        "invalid.@",
+        ".invalid",
+        "..invalid",
+        "invalid.",
+        "invalid..",
+    ),
+)
+def test_filter_group_is_valid_identifier(group: str) -> None:
     with pytest.raises(ValueError, match="must be valid Python"):
-        Filter(group="not-a-valid-identifier")
+        Filter(group=group)
+
+
+def test_filter_group_chain_used_as_subgroup() -> None:
+    with pytest.raises(
+        ValueError, match="Reserved group 'chain' cannot be used as namespace"
+    ):
+        Filter(group="chain.hello")
 
 
 def test_filter_blank_invalid_choice() -> None:

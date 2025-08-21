@@ -142,6 +142,8 @@ class Filter:
             or not all(sub.isidentifier() for sub in group.split("."))
         ):
             raise ValueError("Group names must be valid Python identifiers")
+        if group is not None and group.startswith("chain."):
+            raise ValueError("Reserved group 'chain' cannot be used as namespace")
         if blank is not None and blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
         if template and lookup:
