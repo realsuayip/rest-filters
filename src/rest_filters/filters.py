@@ -136,10 +136,8 @@ class Filter:
         self.lookup = lookup
         self.template = template
 
-        if group is not None and (
-            group.startswith(".")
-            or group.endswith(".")
-            or not all(sub.isidentifier() for sub in group.split("."))
+        if group is not None and not all(
+            sub.isidentifier() for sub in group.split(".")
         ):
             raise ValueError("Group names must be valid Python identifiers")
         if group is not None and group.startswith("chain."):
