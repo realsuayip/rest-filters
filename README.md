@@ -63,6 +63,7 @@ class UserFilterSet(FilterSet[User]):
 ## License
 
 Copyright (c) 2025, Şuayip Üzülmez
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
