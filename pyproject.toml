@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -121,7 +122,7 @@ show_contexts = true
 legacy_tox_ini = """
 [tox]
 envlist =
-    py{310,311,312,313}-django{42,52}-drf{314,315,316}
+    py{310,311,312,313,314}-django{42,52}-drf{314,315,316}
 
 [testenv]
 deps =
