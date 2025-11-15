@@ -1,26 +1,34 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from django.db.models import QuerySet
+from django.db.models import Model
 
-from rest_framework import filters
-from rest_framework.request import Request
-from rest_framework.views import APIView
-
-from rest_filters.utils import _get_filterset_schema, _MT_co
+from rest_filters.utils import _get_filterset_schema
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
+    from rest_framework.generics import BaseFilterProtocol as BaseFilterBackend
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
     from rest_filters import FilterSet
+else:
+    BaseFilterBackend = Generic
+
+
+_MT_inv = TypeVar("_MT_inv", bound=Model)
+
 
 __all__ = [
     "FilterBackend",
 ]
 
 
-class FilterBackend(filters.BaseFilterBackend):
+class FilterBackend(BaseFilterBackend[_MT_inv]):
     def _get_filterset_class(self, view: APIView) -> type[FilterSet[Any]] | None:
-        from rest_filters import FilterSet
+        from rest_filters import FilterSet  # noqa: PLC0415
 
         if (klass := getattr(view, "filterset_class", None)) and issubclass(
             klass, FilterSet
@@ -34,17 +42,17 @@ class FilterBackend(filters.BaseFilterBackend):
     def get_filterset_class(
         self,
         request: Request,
-        queryset: QuerySet[_MT_co],
+        queryset: QuerySet[_MT_inv],
         view: APIView,
-    ) -> type[FilterSet[_MT_co]] | None:
+    ) -> type[FilterSet[_MT_inv]] | None:
         return self._get_filterset_class(view)
 
     def get_filterset(
         self,
         request: Request,
-        queryset: QuerySet[_MT_co],
+        queryset: QuerySet[_MT_inv],
         view: APIView,
-    ) -> FilterSet[_MT_co] | None:
+    ) -> FilterSet[_MT_inv] | None:
         klass = self.get_filterset_class(request, queryset, view)
         if klass is None:
             return None
@@ -53,9 +61,9 @@ class FilterBackend(filters.BaseFilterBackend):
     def filter_queryset(
         self,
         request: Request,
-        queryset: QuerySet[_MT_co],
+        queryset: QuerySet[_MT_inv],
         view: APIView,
-    ) -> QuerySet[_MT_co]:
+    ) -> QuerySet[_MT_inv]:
         filterset = self.get_filterset(request, queryset, view)
         if filterset is None:
             return queryset

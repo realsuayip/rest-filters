@@ -9,7 +9,7 @@ from rest_filters.utils import fill_q_template, merge_errors
 
 @pytest.mark.parametrize(
     "template, result",
-    [
+    (
         (
             Q("username"),
             Q(username="admin"),
@@ -30,14 +30,14 @@ from rest_filters.utils import fill_q_template, merge_errors
             Q("username") | ~Q("email"),
             Q(username="admin") | ~Q(email="admin"),
         ),
-    ],
+    ),
 )
 def test_fill_q_template(template: Q, result: Q) -> None:
     assert fill_q_template(template, value="admin") == result
 
 
 def test_fill_q_template_case_value_specified() -> None:
-    with pytest.raises(ValueError) as ctx:
+    with pytest.raises(ValueError, match="should not specify") as ctx:
         fill_q_template(
             Q(username="admin"),
             value="admin",
@@ -51,7 +51,7 @@ def test_fill_q_template_case_value_specified() -> None:
 
 @pytest.mark.parametrize(
     "source, errors, merged",
-    [
+    (
         (
             {"non_field_errors": ["some error"]},
             {"non_field_errors": ["some other error"]},
@@ -123,7 +123,7 @@ def test_fill_q_template_case_value_specified() -> None:
                 "errors": None,
             },
         ),
-    ],
+    ),
 )
 def test_merge_errors(
     source: dict[str, Any],

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 from django.db.models.expressions import BaseExpression, Combinable
-from django.http.request import QueryDict
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -14,9 +13,12 @@ from rest_framework.fields import SkipField, empty
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
+    from django.http.request import QueryDict
+
     from rest_framework.fields import _Empty
 
     from rest_filters.filtersets import FilterSet
+
 
 __all__ = [
     "Entry",
@@ -64,7 +66,7 @@ class Entry:
             self.expression,
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Entry):
             return NotImplemented
         return (
@@ -232,7 +234,7 @@ class Filter:
     def get_group(self) -> str:
         if self._group is not None:
             return self._group
-        elif self.parent is not None:
+        if self.parent is not None:
             return self.parent.get_group()
         filterset = self.get_filterset()
         return filterset.options.default_group
@@ -259,7 +261,7 @@ class Filter:
     def get_serializer(self) -> AnyField:
         if self._serializer is not None:
             return self._serializer
-        elif self.parent is not None:
+        if self.parent is not None:
             try:
                 return copy.deepcopy(self.parent.get_serializer())
             except ValueError:

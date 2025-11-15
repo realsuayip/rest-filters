@@ -10,7 +10,8 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.fields import Field
 
-_MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)
+_MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)  # noqa: PYI018
+
 
 NotSet = enum.Enum("NotSet", "notset")
 notset: Final = NotSet.notset
@@ -97,7 +98,7 @@ def _get_filterset_schema(
     view: APIView,
 ) -> list[dict[str, Any]]:
     ret = []
-    for _, field in filterset.compiled_fields.items():
+    for field in filterset.compiled_fields.values():
         for f in [field, *field.get_all_children()]:
             if f.namespace:
                 continue

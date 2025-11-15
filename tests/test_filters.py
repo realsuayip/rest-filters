@@ -84,7 +84,7 @@ def test_filter_blank_invalid_choice() -> None:
 
 
 def test_filter_template_and_field_provided() -> None:
-    with pytest.raises(ValueError) as ctx:
+    with pytest.raises(ValueError, match="cannot be used") as ctx:
         Filter(
             field="username",
             template=Q("hello"),
@@ -93,7 +93,7 @@ def test_filter_template_and_field_provided() -> None:
 
 
 def test_filter_template_and_lookup_provided() -> None:
-    with pytest.raises(ValueError) as ctx:
+    with pytest.raises(ValueError, match="cannot be used") as ctx:
         Filter(
             lookup="icontains",
             template=Q("username"),
@@ -105,7 +105,7 @@ def test_filter_template_and_lookup_provided() -> None:
 
 
 def test_filter_negate_and_method_provided() -> None:
-    with pytest.raises(ValueError) as ctx:
+    with pytest.raises(ValueError, match="cannot be used") as ctx:
         Filter(
             negate=True,
             method="my_method",
@@ -496,7 +496,7 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
         username = Filter(serializers.CharField())
 
         def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
-            serializer = cast(serializers.CharField, serializer)
+            serializer = cast("serializers.CharField", serializer)
             serializer.max_length = 25
             return serializer
 
@@ -504,7 +504,7 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
 
     field = filterset.get_fields()["username"]
     field._filterset = filterset
-    resolved = cast(serializers.CharField, field.resolve_serializer())
+    resolved = cast("serializers.CharField", field.resolve_serializer())
 
     assert resolved == field._serializer
     assert resolved.context
@@ -630,7 +630,7 @@ def test_entry_repr() -> None:
 
 @pytest.mark.parametrize(
     "f,entry",
-    [
+    (
         # Field names
         (
             Filter(field="username"),
@@ -743,7 +743,7 @@ def test_entry_repr() -> None:
                 },
             ),
         ),
-    ],
+    ),
 )
 def test_filter_resolve_entry_attrs(f: Filter, entry: Entry) -> None:
     class SomeFilterSet(FilterSet[Any]):

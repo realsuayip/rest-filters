@@ -54,40 +54,6 @@ docs = [
 [tool.uv]
 required-version = ">=0.8.6"
 
-[tool.ruff.lint]
-select = [
-    "E", # pycodestyle errors
-    "W", # pycodestyle warnings
-    "F", # pyflakes
-    "C", # flake8-comprehensions
-    "B", # flake8-bugbear
-    "RUF", # Ruff-specific
-    "C4", # flake8-comprehensions
-    "C90", # mccabe
-    "I", # isort
-]
-fixable = ["I"]
-ignore = ["B904", "RUF012"]
-
-[tool.ruff.lint.isort]
-combine-as-imports = true
-section-order = [
-    "future",
-    "standard-library",
-    "django",
-    "rest_framework",
-    "third-party",
-    "first-party",
-    "local-folder",
-]
-
-[tool.ruff.lint.isort.sections]
-django = ["django"]
-rest_framework = ["rest_framework"]
-
-[tool.lint.mccabe]
-max-complexity = 10
-
 [tool.mypy]
 strict = true
 plugins = ["mypy_django_plugin.main"]
@@ -140,3 +106,68 @@ deps =
 commands =
     pytest
 """
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
+    "RUF", # ruff-specific
+    "C4", # flake8-comprehensions
+    "C90", # mccabe
+    "I", # isort
+    "N", # pep8-naming
+    "BLE", # flake8-blind-except
+    "DTZ", # flake8-datetimez
+    "DJ", # flake8-django
+    "FA", # flake8-future-annotations
+    "G", # flake8-logging-format
+    "T20", # flake8-print
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PL", # pylint
+    "PERF", # perflint
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "PT", # flake8-pytest-style
+    "TC", # flake8-type-checking
+    "UP", # pyupgrade
+    "FURB", # refurb
+]
+fixable = ["I"]
+ignore = [
+    "PLR0913",
+    "UP031",
+    "PLW1641",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+section-order = [
+    "future",
+    "standard-library",
+    "django",
+    "rest_framework",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+django = ["django"]
+rest_framework = ["rest_framework"]
+
+[tool.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*" = ["B904", "RUF012", "PLR2004"]
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-values-type = "tuple"
+parametrize-values-row-type = "tuple"
+parametrize-names-type = "csv"

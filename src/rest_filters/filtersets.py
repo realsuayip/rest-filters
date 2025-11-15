@@ -5,35 +5,36 @@ import functools
 import itertools
 import operator
 from collections import defaultdict
-from collections.abc import Sequence
 from difflib import get_close_matches
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     TypeAlias,
     final,
 )
 
-from django.db.models import QuerySet
-from django.http import QueryDict
 from django.utils.translation import gettext
 
 from rest_framework import serializers
 from rest_framework.fields import empty
-from rest_framework.request import Request
 from rest_framework.settings import api_settings
-from rest_framework.views import APIView
 
 from rest_filters.conf import app_settings
-from rest_filters.constraints import Constraint
 from rest_filters.filters import Entry, Filter
 from rest_filters.utils import AnyField, NotSet, _MT_co, merge_errors, notset
 
 if TYPE_CHECKING:
-    from rest_framework.fields import _Empty
+    from collections.abc import Callable, Sequence
 
+    from django.db.models import QuerySet
+    from django.http import QueryDict
+
+    from rest_framework.fields import _Empty
+    from rest_framework.request import Request
+    from rest_framework.views import APIView
+
+    from rest_filters.constraints import Constraint
 
 __all__ = [
     "FilterSet",
@@ -218,7 +219,7 @@ class FilterSet(Generic[_MT_co]):
                 "The following fields are not valid: %(fields)s,"
                 " available fields: %(available)s"
                 % {
-                    "fields": ", ".join((repr(item) for item in unknown)),
+                    "fields": ", ".join(repr(item) for item in unknown),
                     "available": ", ".join(repr(item) for item in available),
                 }
             )
@@ -238,7 +239,7 @@ class FilterSet(Generic[_MT_co]):
         )
         groupdict: Groups
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
-        for _, field in fields.items():
+        for field in fields.values():
             try:
                 field._filterset = self
                 entries, errors = field.resolve(params)
@@ -339,10 +340,7 @@ class FilterSet(Generic[_MT_co]):
             for entry in entries.values()
             if entry.expression is not None
         ]
-        if expressions:
-            expression = functools.reduce(combinator, expressions)
-        else:
-            expression = None
+        expression = functools.reduce(combinator, expressions) if expressions else None
         return Entry(
             group=group,
             aliases=functools.reduce(
@@ -373,8 +371,8 @@ class FilterSet(Generic[_MT_co]):
 
         for root, groups in ns.items():
             if len(groups) == 1:
-                root, entries = next(iter(groups.items()))
-                queryset = self.filter_group(queryset, root, entries)
+                group, entries = next(iter(groups.items()))
+                queryset = self.filter_group(queryset, group, entries)
             else:
                 queryset = self.filter_group_namespace(queryset, root, groups)
         return self.get_queryset(queryset, valuedict)

@@ -1,6 +1,7 @@
 import datetime
 import operator
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from django.db.models import F, Q, Value
 from django.db.models.functions import Concat

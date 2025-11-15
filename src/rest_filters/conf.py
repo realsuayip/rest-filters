@@ -40,7 +40,7 @@ class AppSettings:
         }
     """
 
-    BLANK: Literal["keep"] | Literal["omit"] = "omit"
+    BLANK: Literal["keep", "omit"] = "omit"
     """
     Determines how empty query parameters are handled. Default is ``omit``
     which behaves as if query parameter was not provided. Setting this to
@@ -71,14 +71,13 @@ class AppSettings:
     query expression.
     """
 
-    def __getattribute__(self, __name: str) -> Any:
+    def __getattribute__(self, /, __name: str) -> Any:
         user_settings = getattr(settings, "REST_FILTERS", {})
         value = user_settings.get(__name, super().__getattribute__(__name))
-        if value is notset:
-            if __name == "KNOWN_PARAMETERS":
-                # Can't use this as the default factory since it would access
-                # DRF settings at import time.
-                return get_default_known_parameters()
+        if value is notset and __name == "KNOWN_PARAMETERS":
+            # Can't use this as the default factory since it would access
+            # DRF settings at import time.
+            return get_default_known_parameters()
         return value
 
 

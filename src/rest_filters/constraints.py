@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from django.utils.translation import gettext, ngettext
@@ -10,6 +9,8 @@ from rest_framework import serializers
 from rest_framework.settings import api_settings
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from django.utils.functional import _StrOrPromise as StrOrPromise
 
     from rest_filters.filtersets import FilterSet
