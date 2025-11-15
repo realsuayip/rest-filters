@@ -16,30 +16,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: constraints.py:44
+#: src/rest_filters/constraints.py:45
 #, python-format
 msgid "Request failed to meet constraint: %(constraint)s"
 msgstr "Die Anfrage erfüllt die Einschränkung nicht: %(constraint)s"
 
-#: constraints.py:86
+#: src/rest_filters/constraints.py:87
 #, python-format
 msgid ""
 "The following fields are mutually exclusive, you may only provide one of "
 "them: %(fields)s"
 msgstr ""
-"Die folgenden Felder schließen sich gegenseitig aus; Sie dürfen nur "
-"eines davon angeben: %(fields)s"
+"Die folgenden Felder schließen sich gegenseitig aus; Sie dürfen nur eines "
+"davon angeben: %(fields)s"
 
-#: constraints.py:120
+#: src/rest_filters/constraints.py:121
 #, python-format
 msgid ""
 "The following fields are mutually inclusive, you must provide them all at "
 "once or none of them: %(fields)s"
 msgstr ""
-"Die folgenden Felder sind gemeinsam erforderlich; Sie müssen sie "
-"entweder alle zusammen angeben oder keines: %(fields)s"
+"Die folgenden Felder sind gemeinsam erforderlich; Sie müssen sie entweder "
+"alle zusammen angeben oder keines: %(fields)s"
 
-#: constraints.py:154
+#: src/rest_filters/constraints.py:155
 #, python-format
 msgid ""
 "This query parameter also requires the following parameter to be present: "
@@ -48,26 +48,26 @@ msgid_plural ""
 "This query parameter also requires the following parameters to be present: "
 "%(params)s"
 msgstr[0] ""
-"Dieser Abfrageparameter erfordert außerdem, dass der folgende "
-"Parameter vorhanden ist: %(params)s"
+"Dieser Abfrageparameter erfordert außerdem, dass der folgende Parameter "
+"vorhanden ist: %(params)s"
 msgstr[1] ""
-"Dieser Abfrageparameter erfordert außerdem, dass die folgenden "
-"Parameter vorhanden sind: %(params)s"
+"Dieser Abfrageparameter erfordert außerdem, dass die folgenden Parameter "
+"vorhanden sind: %(params)s"
 
-#: filtersets.py:407
+#: src/rest_filters/filtersets.py:499
 msgid "This query parameter does not exist."
 msgstr "Dieser Abfrageparameter existiert nicht."
 
-#: filtersets.py:411
+#: src/rest_filters/filtersets.py:503
 #, python-format
-msgid "This query parameter does not exist. Did you mean \"%(param)s\"?"
-msgstr "Dieser Abfrageparameter existiert nicht. Meinten Sie \"%(param)s\"?"
+msgid "This query parameter does not exist. Did you mean '%(param)s'?"
+msgstr "Dieser Abfrageparameter existiert nicht. Meinten Sie '%(param)s'?"
 
-#: filtersets.py:419
+#: src/rest_filters/filtersets.py:511
 #, python-format
 msgid ""
 "This query parameter does not exist. Did you mean one of these: "
 "%(possibilities)s?"
 msgstr ""
-"Dieser Abfrageparameter existiert nicht. Meinten Sie eine der "
-"folgenden Möglichkeiten: %(possibilities)s?"
+"Dieser Abfrageparameter existiert nicht. Meinten Sie eine der folgenden "
+"Möglichkeiten: %(possibilities)s?"

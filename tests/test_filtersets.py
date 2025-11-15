@@ -1112,11 +1112,11 @@ def test_handle_unknown_parameters() -> None:
         ["known", "go", "there", "where"],
     )
     assert r == {
-        "unknown": ['This query parameter does not exist. Did you mean "known"?'],
-        "goes": ['This query parameter does not exist. Did you mean "go"?'],
+        "unknown": ["This query parameter does not exist. Did you mean 'known'?"],
+        "goes": ["This query parameter does not exist. Did you mean 'go'?"],
         "here": [
             "This query parameter does not exist. Did you mean one of these:"
-            ' "where", "there"?'
+            " 'where', 'there'?"
         ],
         "phoenix": ["This query parameter does not exist."],
     }
@@ -1152,13 +1152,13 @@ def test_get_groups_all_errors_are_merged() -> None:
         "non_field_errors": [
             ErrorDetail(
                 string="The following fields are mutually exclusive, you may only"
-                ' provide one of them: "first_name", "last_name"',
+                " provide one of them: 'first_name', 'last_name'",
                 code="invalid",
             )
         ],
         "creates": [
             ErrorDetail(
-                string='This query parameter does not exist. Did you mean "created"?',
+                string="This query parameter does not exist. Did you mean 'created'?",
                 code="invalid",
             )
         ],
@@ -1194,7 +1194,7 @@ def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> Non
         "non_field_errors": [
             ErrorDetail(
                 string="The following fields are mutually exclusive, you may only"
-                ' provide one of them: "first_name", "last_name"',
+                " provide one of them: 'first_name', 'last_name'",
                 code="invalid",
             ),
             ErrorDetail(

@@ -500,12 +500,12 @@ class FilterSet(Generic[_MT_co]):
             elif len(matches) == 1:
                 fields[param] = [
                     gettext(
-                        'This query parameter does not exist. Did you mean "%(param)s"?'
+                        "This query parameter does not exist. Did you mean '%(param)s'?"
                     )
                     % {"param": matches[0]}
                 ]
             else:
-                possibilities = ", ".join(f'"{match}"' for match in matches)
+                possibilities = ", ".join(f"'{match}'" for match in matches)
                 fields[param] = [
                     gettext(
                         "This query parameter does not exist."

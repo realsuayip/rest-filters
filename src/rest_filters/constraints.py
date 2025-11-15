@@ -89,7 +89,7 @@ class MutuallyExclusive(Constraint):
                 )
                 % {
                     "fields": ", ".join(
-                        f'"{field}"' for field in self.fields if field in values
+                        f"'{field}'" for field in self.fields if field in values
                     )
                 }
             ]
@@ -121,7 +121,7 @@ class MutuallyInclusive(Constraint):
                     "The following fields are mutually inclusive,"
                     " you must provide them all at once or none of them: %(fields)s"
                 )
-                % {"fields": ", ".join(f'"{field}"' for field in self.fields)}
+                % {"fields": ", ".join(f"'{field}'" for field in self.fields)}
             ]
         }
 
@@ -158,7 +158,7 @@ class Dependency(Constraint):
                     " parameters to be present: %(params)s",
                     len(dependencies),
                 )
-                % {"params": ", ".join(f'"{field}"' for field in dependencies)}
+                % {"params": ", ".join(f"'{field}'" for field in dependencies)}
             ]
         return message
 
