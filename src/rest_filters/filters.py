@@ -245,10 +245,12 @@ class Filter:
         return self._field or self.name
 
     def get_param_name(self) -> str:
-        try:
-            name = self._param or self.name
-        except AttributeError as e:
-            raise AssertionError("Could not resolve FilterSet") from e
+        name = self._param or getattr(self, "name", None)
+        if name is None:
+            raise AttributeError(
+                "Could not resolve name of this Filter instance,"
+                " did you instantiate it outside a FilterSet body?"
+            )
         if self.parent is not None:
             namespace = self.parent.get_param_name()
             return f"{namespace}.{name}"

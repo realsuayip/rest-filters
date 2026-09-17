@@ -144,7 +144,11 @@ def test_filter_child_binding_param_defaults_to_lookup() -> None:
 
 def test_filter_name_resolution_failure_message() -> None:
     f = Filter()
-    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+    with pytest.raises(
+        AttributeError,
+        match="Could not resolve name of this Filter instance,"
+        r" did you instantiate it outside a FilterSet body\?",
+    ):
         f.get_param_name()
 
 
