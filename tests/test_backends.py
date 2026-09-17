@@ -245,3 +245,19 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             "explode": False,
         },
     ]
+
+
+def test_filter_backend_get_schema_operation_parameters_case_missing_filterset() -> (
+    None
+):
+    class UserView(ListAPIView[User]):
+        serializer_class = UserSerializer
+        queryset = User.objects.none()
+        filter_backends = [FilterBackend]
+
+    factory = APIRequestFactory()
+    view = UserView()
+    view.request = factory.get("/?username=")
+
+    schema = FilterBackend().get_schema_operation_parameters(view)
+    assert schema == []
