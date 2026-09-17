@@ -140,6 +140,12 @@ def test_method_constraint() -> None:
     assert errors2 == {}
 
 
+def test_method_constraint_with_outside_filterset_context() -> None:
+    c = MethodConstraint(method="some_method")
+    with pytest.raises(AttributeError, match="Missing filterset for constraint"):
+        c.check({"value": 1})
+
+
 def test_mutually_exclusive_constraint() -> None:
     class SomeFilterSet(FilterSet[Any]):
         a = Filter(serializers.IntegerField())
@@ -297,6 +303,22 @@ def test_constraint_combination_bad_combination() -> None:
             " one of them: 'a', 'b'"
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "klass",
+    (
+        MutuallyInclusive,
+        MutuallyExclusive,
+    ),
+)
+def test_mutual_constraint_case_bad_args(
+    klass: type[MutuallyInclusive | MutuallyExclusive],
+) -> None:
+    with pytest.raises(
+        ValueError, match="Provide 2 or more fields for this constraint"
+    ):
+        klass(fields=["a"])
 
 
 def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> None:

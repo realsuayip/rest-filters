@@ -275,7 +275,8 @@ class Filter:
     def get_filterset(self) -> FilterSet[Any]:
         if self.parent:
             return self.parent.get_filterset()
-        assert self._filterset is not None, "Could not resolve FilterSet"
+        if self._filterset is None:
+            raise AttributeError("Could not resolve FilterSet for this Filter")
         return self._filterset
 
     def resolve_serializer(self) -> AnyField:

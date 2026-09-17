@@ -152,6 +152,15 @@ def test_filter_name_resolution_failure_message() -> None:
         f.get_param_name()
 
 
+def test_filter_filterset_resolution_failure_message() -> None:
+    f = Filter()
+    with pytest.raises(
+        AttributeError,
+        match="Could not resolve FilterSet for this Filter",
+    ):
+        f.get_filterset()
+
+
 def test_namespace_filter_without_children() -> None:
     with pytest.raises(
         ValueError, match="Namespace filters are required to have child filters"
@@ -363,10 +372,10 @@ def test_filter_get_filterset() -> None:
     assert fields["created"].get_filterset() == filterset
     assert fields["created"].children[0].get_filterset() == filterset
 
-    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+    with pytest.raises(AttributeError, match="Could not resolve FilterSet"):
         SomeFilterSet.compiled_fields["username"].get_filterset()
 
-    with pytest.raises(AssertionError, match="Could not resolve FilterSet"):
+    with pytest.raises(AttributeError, match="Could not resolve FilterSet"):
         filterset.compiled_fields["username"].get_filterset()
 
 

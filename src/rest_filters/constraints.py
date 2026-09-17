@@ -62,7 +62,8 @@ class MethodConstraint(Constraint):
         super().__init__(message=message, **kwargs)
 
     def check(self, values: dict[str, Any]) -> None:
-        assert self.filterset, "Missing filterset for constraint"
+        if self.filterset is None:
+            raise AttributeError("Missing filterset for constraint")
         getattr(self.filterset, self.method)(values)
 
 
@@ -74,7 +75,8 @@ class MutuallyExclusive(Constraint):
         fields: Sequence[str],
         **kwargs: Any,
     ) -> None:
-        assert len(fields) > 1, "Provide 2 or more fields for this constraint"
+        if len(fields) <= 1:
+            raise ValueError("Provide 2 or more fields for this constraint")
         self.fields = fields
         super().__init__(message=message, **kwargs)
 
@@ -108,7 +110,8 @@ class MutuallyInclusive(Constraint):
         fields: Sequence[str],
         **kwargs: Any,
     ) -> None:
-        assert len(fields) > 1, "Provide 2 or more fields for this constraint"
+        if len(fields) <= 1:
+            raise ValueError("Provide 2 or more fields for this constraint")
         self.fields = fields
         super().__init__(message=message, **kwargs)
 
