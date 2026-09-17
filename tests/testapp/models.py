@@ -6,7 +6,7 @@ class Company(models.Model):
     address = models.CharField(max_length=100)
 
     def __str__(self) -> str:
-        return self.name
+        return self.name  # pragma: no cover
 
 
 class User(models.Model):
@@ -22,4 +22,4 @@ class User(models.Model):
     location = models.TextField()
 
     def __str__(self) -> str:
-        return self.username
+        return self.username  # pragma: no cover

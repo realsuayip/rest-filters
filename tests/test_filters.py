@@ -425,7 +425,7 @@ def test_filter_resolve_serializer_dynamic_only() -> None:
         def get_serializer(self, param: str, serializer: AnyField | None) -> AnyField:
             if param in ("username", "username.icontains"):
                 return f
-            return super().get_serializer(param, serializer)
+            return super().get_serializer(param, serializer)  # pragma: no cover
 
     filterset = get_filterset_instance(SomeFilterSet)
     fields = filterset.get_fields()
