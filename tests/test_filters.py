@@ -934,10 +934,6 @@ def test_filter_resolve() -> None:
         def get_username_icontains(self, param: str, value: str) -> Q:
             return Q(username__icontains=value)
 
-        def handle_errors(self, errordict: dict[str, Any]) -> None:
-            # do not raise errors for testing purposes
-            pass
-
     filterset = get_filterset_instance(SomeFilterSet)
 
     fields = filterset.get_fields()
