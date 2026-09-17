@@ -34,10 +34,9 @@ class FilterBackend(BaseFilterBackend[_MT_inv]):
             klass, FilterSet
         ):
             return klass  # type: ignore[no-any-return]
-        try:
-            return view.get_filterset_class()  # type: ignore[no-any-return, attr-defined]
-        except AttributeError:
-            return None
+        if (method := getattr(view, "get_filterset_class", None)) is not None:
+            return method()  # type: ignore[no-any-return]
+        return None
 
     def get_filterset_class(
         self,

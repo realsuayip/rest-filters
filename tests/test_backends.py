@@ -62,6 +62,25 @@ def test_filter_backend_discover_from_get_filterset_class() -> None:
     }
 
 
+@pytest.mark.parametrize("exc_type", (AttributeError, AssertionError))
+@pytest.mark.django_db
+def test_filter_backend_discover_from_get_filterset_class_case_method_raises(
+    exc_type: type[BaseException],
+) -> None:
+    class UserView(ListAPIView[User]):
+        serializer_class = UserSerializer
+        queryset = User.objects.none()
+        filter_backends = [FilterBackend]
+
+        def get_filterset_class(self) -> type[FilterSet[User]]:
+            raise exc_type
+
+    factory = APIRequestFactory()
+    request = factory.get("/?username=")
+    with pytest.raises(exc_type):
+        UserView.as_view()(request)
+
+
 @pytest.mark.django_db
 def test_filter_backend_noop_when_filterset_not_found() -> None:
     class UserView(ListAPIView[User]):
