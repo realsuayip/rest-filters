@@ -10,7 +10,7 @@ settings.configure()
 
 
 project = "rest-filters"
-copyright = "2025, şuayip üzülmez"
+copyright = "2026, şuayip üzülmez"
 author = "şuayip üzülmez"
 release = "0.7.0"
 
