@@ -280,6 +280,12 @@ class Filter:
         return self._filterset
 
     def resolve_serializer(self) -> AnyField:
+        # Notice that a child only inherits the parent serializer if it is not
+        # dispatched via method. This is because it is trivial and visually
+        # more explicit to share same serializer instance when using methods.
+        #
+        # Doing otherwise would hurt code readability in the case of complex
+        # serializer resolutions via methods.
         filterset, param = self.get_filterset(), self.get_param_name()
         try:
             serializer = self.get_serializer()

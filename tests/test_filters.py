@@ -457,6 +457,8 @@ def test_filter_resolve_serializer_dynamic_failed_to_resolve() -> None:
 
 
 def test_filter_resolve_serializer_dynamic_failed_to_resolve_case_nested() -> None:
+    # Don't support serializer inheritance when serializers are resolved
+    # using methods.
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(children=[Filter(param="icontains", lookup="icontains")])
 
