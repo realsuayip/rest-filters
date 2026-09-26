@@ -6,13 +6,7 @@ import itertools
 import operator
 from collections import defaultdict
 from difflib import get_close_matches
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    TypeAlias,
-    final,
-)
+from typing import TYPE_CHECKING, Any, Generic, TypeAlias, final
 
 from django.utils.translation import gettext
 
@@ -22,7 +16,13 @@ from rest_framework.settings import api_settings
 
 from rest_filters.conf import app_settings
 from rest_filters.filters import Entry, Filter
-from rest_filters.utils import AnyField, NotSet, _MT_co, merge_errors, notset
+from rest_filters.utils import (
+    AnyField,
+    NotSet,
+    _MT_co,
+    merge_errors,
+    notset,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -30,11 +30,12 @@ if TYPE_CHECKING:
     from django.db.models import QuerySet
     from django.http import QueryDict
 
-    from rest_framework.fields import _Empty
     from rest_framework.request import Request
     from rest_framework.views import APIView
 
+    from rest_filters.conf import Multi
     from rest_filters.constraints import Constraint
+    from rest_filters.utils import ParsedValue
 
 __all__ = [
     "FilterSet",
@@ -42,6 +43,19 @@ __all__ = [
 
 Entries: TypeAlias = dict[str, Entry]
 Groups: TypeAlias = dict[str, Entries]
+
+
+OPTION_NAMES = (
+    "fields",
+    "constraints",
+    "combinators",
+    "default_group",
+    "known_parameters",
+    "extend_known_parameters",
+    "handle_unknown_parameters",
+    "blank",
+    "multi",
+)
 
 
 @final
@@ -52,6 +66,7 @@ class Options:
         "_extend_known_parameters",
         "_handle_unknown_parameters",
         "_known_parameters",
+        "_multi",
         "combinators",
         "constraints",
         "fields",
@@ -67,6 +82,7 @@ class Options:
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
         blank: str | NotSet = notset,
+        multi: Multi | NotSet = notset,
         default_group: str | NotSet = notset,
     ) -> None:
         """
@@ -87,6 +103,7 @@ class Options:
          operator for given groups. The default operator for groups is
          ``operator.and_``.
         :param blank: Overrides :py:attr:`rest_filters.conf.AppSettings.BLANK`
+        :param multi: Overrides :py:attr:`rest_filters.conf.AppSettings.MULTI`
         :param default_group:
          Overrides :py:attr:`rest_filters.conf.AppSettings.DEFAULT_GROUP`
         """
@@ -94,6 +111,7 @@ class Options:
         self._extend_known_parameters = extend_known_parameters
         self._handle_unknown_parameters = handle_unknown_parameters
         self._blank = blank
+        self._multi = multi
         self._default_group = default_group
 
         if constraints is notset:
@@ -127,6 +145,12 @@ class Options:
         return self._blank
 
     @property
+    def multi(self) -> Multi:
+        if self._multi is notset:
+            return app_settings.MULTI
+        return self._multi
+
+    @property
     def default_group(self) -> str:
         if self._default_group is notset:
             return app_settings.DEFAULT_GROUP
@@ -153,18 +177,8 @@ class FilterSet(Generic[_MT_co]):
         self._constraints = copy.deepcopy(self.options.constraints)
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        meta_fields = (
-            "fields",
-            "constraints",
-            "combinators",
-            "default_group",
-            "known_parameters",
-            "extend_known_parameters",
-            "handle_unknown_parameters",
-            "blank",
-        )
         if meta := getattr(cls, "Meta", None):
-            opts = {field: getattr(meta, field, notset) for field in meta_fields}
+            opts = {field: getattr(meta, field, notset) for field in OPTION_NAMES}
             options = Options(**opts)
         else:
             options = Options()
@@ -439,7 +453,7 @@ class FilterSet(Generic[_MT_co]):
         return context
 
     def run_validation(
-        self, value: str | _Empty, serializer: AnyField, param: str
+        self, value: ParsedValue, serializer: AnyField, param: str
     ) -> Any:
         """
         Run validation for the given param.

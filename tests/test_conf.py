@@ -8,7 +8,8 @@ from rest_framework.exceptions import ErrorDetail
 
 import pytest
 
-from rest_filters import Filter, FilterSet
+from rest_filters import Filter, FilterSet, Multi
+from rest_filters.fields import ListField
 from rest_filters.filters import Entry
 from tests.test_filters import get_filterset_instance
 
@@ -46,6 +47,99 @@ def test_blank_keep() -> None:
                 aliases=None,
                 value="",
                 expression=Q(username=""),
+            )
+        }
+    }
+
+
+def test_multi_default() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username": [
+            ErrorDetail(
+                string="This query parameter does not allow specifying"
+                " multiple values.",
+                code="invalid",
+            )
+        ]
+    }
+
+
+@override_settings(REST_FILTERS={"MULTI": Multi.DISALLOW})
+def test_multi_disallow() -> None:
+    test_multi_default()
+
+
+@override_settings(REST_FILTERS={"MULTI": Multi.ALLOW})
+def test_multi_allow() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+            lookup="in",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                aliases=None,
+                value=["alice", "bob"],
+                expression=Q(username__in=["alice", "bob"]),
+            )
+        }
+    }
+
+
+@override_settings(REST_FILTERS={"MULTI": Multi.FIRST})
+def test_multi_first() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                aliases=None,
+                value="alice",
+                expression=Q(username="alice"),
+            )
+        }
+    }
+
+
+@override_settings(REST_FILTERS={"MULTI": Multi.LAST})
+def test_multi_last() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                aliases=None,
+                value="bob",
+                expression=Q(username="bob"),
             )
         }
     }

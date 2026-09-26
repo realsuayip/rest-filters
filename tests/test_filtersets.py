@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 
 import pytest
 
-from rest_filters import Filter, FilterSet
+from rest_filters import Filter, FilterSet, Multi
 from rest_filters.constraints import Constraint, MutuallyExclusive
 from rest_filters.filters import Entry
 from rest_filters.filtersets import Entries, Options
@@ -36,6 +36,7 @@ def test_filterset_options() -> None:
             combinators = {"group": operator.or_}
             constraints = (MutuallyExclusive(fields=["username", "created"]),)
             blank = "keep"
+            multi = Multi.FIRST
             default_group = "custom"
 
     options = SomeFilterSet.options
@@ -46,6 +47,7 @@ def test_filterset_options() -> None:
     assert options.handle_unknown_parameters is True
     assert options.combinators == {"group": operator.or_}
     assert options.blank == "keep"
+    assert options.multi == Multi.FIRST
     assert options.default_group == "custom"
 
     assert len(options.constraints) == 1
@@ -74,6 +76,7 @@ def test_filterset_options_no_meta() -> None:
     assert options.constraints == []
     assert options.blank == "omit"
     assert options.default_group == "chain"
+    assert options.multi == Multi.DISALLOW
 
 
 def test_filterset_options_partial_meta() -> None:

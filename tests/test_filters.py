@@ -13,7 +13,8 @@ from rest_framework.test import APIRequestFactory
 
 import pytest
 
-from rest_filters import Filter, FilterSet
+from rest_filters import Filter, FilterSet, Multi
+from rest_filters.fields import ListField
 from rest_filters.filters import Entry
 from rest_filters.utils import AnyField, notset
 from tests.testapp.views import UserView
@@ -114,6 +115,27 @@ def test_filter_negate_and_method_provided() -> None:
         "'method' and 'negate' cannot be used together. Negate the expression"
         " in your method instead.",
     )
+
+
+def test_filter_multi_bad_value() -> None:
+    with pytest.raises(
+        ValueError,
+        match="'unknown' is not valid multi value",
+    ):
+        Filter(
+            serializers.ListField(),
+            multi="unknown",  # type: ignore[arg-type]
+        )
+
+
+def test_filter_with_bad_list_field_raises_warning() -> None:
+    with pytest.warns(
+        UserWarning,
+        match=r"Use of `rest_framework.fields.ListField` is not recommended"
+        r" for Filter, use `rest_filters.fields.ListField` instead for"
+        r" predictable behavior",
+    ):
+        Filter(serializers.ListField())
 
 
 def test_filter_child_binding() -> None:
@@ -312,13 +334,13 @@ def test_filter_get_query_value() -> None:
     f = SomeFilterSet
     query_dict = QueryDict("username=kate&created.gte=2024-01-01&first_name=Katie")
 
-    assert f.username.get_query_value(query_dict) == "kate"
+    assert f.username.get_query_value(query_dict) == ["kate"]
 
-    assert f.name.get_query_value(query_dict) == "Katie"
-    assert f.surname.get_query_value(query_dict) is empty
+    assert f.name.get_query_value(query_dict) == ["Katie"]
+    assert f.surname.get_query_value(query_dict) == []
 
-    assert f.created.get_query_value(query_dict) is empty
-    assert f.created.children[0].get_query_value(query_dict) == "2024-01-01"
+    assert f.created.get_query_value(query_dict) == []
+    assert f.created.children[0].get_query_value(query_dict) == ["2024-01-01"]
 
 
 def test_filter_get_serializer() -> None:
@@ -579,9 +601,9 @@ def test_filter_parse_value() -> None:
     username._filterset = filterset
     username.run_validation = MagicMock()  # type: ignore[method-assign]
 
-    username.parse_value("123")
-    username.parse_value(empty)
-    username.parse_value("")
+    username.parse_value(["123"])
+    username.parse_value([])
+    username.parse_value([""])
 
     username.run_validation.assert_has_calls(
         calls=[
@@ -602,7 +624,7 @@ def test_filter_parse_value_case_blank_keep() -> None:
     username._filterset = filterset
     username.run_validation = MagicMock()  # type: ignore[method-assign]
 
-    username.parse_value("")
+    username.parse_value([""])
     username.run_validation.assert_called_once_with("", username._serializer)
 
 
@@ -616,14 +638,288 @@ def test_filter_parse_value_initial_string_parsing() -> None:
     created._filterset = filterset
     created.run_validation = MagicMock()  # type: ignore[method-assign]
 
-    created.parse_value(" 2017-01-01\t\n\r")
+    created.parse_value([" 2017-01-01\t\n\r"])
     created.run_validation.assert_called_once_with("2017-01-01", created._serializer)
 
     with pytest.raises(
         serializers.ValidationError,
         match="Null characters are not allowed",
     ):
-        created.parse_value("2017-01-01\0")
+        created.parse_value(["2017-01-01\0"])
+
+
+def test_filter_parse_value_case_bad_multi() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            multi = "uknown"
+
+    filterset = get_filterset_instance(SomeFilterSet)
+
+    username = filterset.get_fields()["username"]
+    username._filterset = filterset
+
+    with pytest.raises(
+        ValueError,
+        match="'uknown' is not a valid multi choice",
+    ):
+        username.parse_value(["123"])
+
+
+def test_multi_disallow() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), multi=Multi.DISALLOW)
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username": [
+            ErrorDetail(
+                string="This query parameter does not allow"
+                " specifying multiple values.",
+                code="invalid",
+            )
+        ]
+    }
+
+
+def test_multi_disallow_single_value() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), multi=Multi.DISALLOW)
+
+    instance = get_filterset_instance(SomeFilterSet, query="username=alice")
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value="alice",
+                expression=Q(username="alice"),
+            )
+        }
+    }
+
+
+def test_multi_disallow_no_value() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), multi=Multi.DISALLOW)
+
+    instance = get_filterset_instance(SomeFilterSet, query="")
+    groups, _ = instance.get_groups()
+    assert groups == {}
+
+
+def test_multi_first() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), multi=Multi.FIRST)
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value="alice",
+                expression=Q(username="alice"),
+            )
+        }
+    }
+
+
+def test_multi_last() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), multi=Multi.LAST)
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value="bob",
+                expression=Q(username="bob"),
+            )
+        }
+    }
+
+
+def test_multi_allow_single_value() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+            multi=Multi.ALLOW,
+            lookup="in",
+        )
+
+    instance = get_filterset_instance(SomeFilterSet, query="username=alice")
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value=["alice"],
+                expression=Q(username__in=["alice"]),
+            )
+        }
+    }
+
+
+def test_multi_allow_multiple_values() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+            multi=Multi.ALLOW,
+            lookup="in",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet, query="username=alice&username=bob"
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value=["alice", "bob"],
+                expression=Q(username__in=["alice", "bob"]),
+            )
+        }
+    }
+
+
+def test_multi_allow_no_value() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+            multi=Multi.ALLOW,
+            lookup="in",
+        )
+
+    instance = get_filterset_instance(SomeFilterSet, query="")
+    groups, _ = instance.get_groups()
+    assert groups == {}
+
+
+def test_multi_allow_blank_keep() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField(allow_blank=True)),
+            multi=Multi.ALLOW,
+            lookup="in",
+            blank="keep",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=alice&username=&username=bob",
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value=["alice", "", "bob"],
+                expression=Q(username__in=["alice", "", "bob"]),
+            )
+        }
+    }
+
+
+def test_multi_allow_blank_omit_child_not_required() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(
+                child=serializers.CharField(
+                    allow_blank=True,
+                    required=False,
+                )
+            ),
+            multi=Multi.ALLOW,
+            lookup="in",
+            blank="omit",
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=alice&username=&username=bob",
+    )
+    groups, _ = instance.get_groups()
+    assert groups == {
+        "chain": {
+            "username": Entry(
+                group="chain",
+                value=["alice", "bob"],
+                expression=Q(username__in=["alice", "bob"]),
+            )
+        }
+    }
+
+
+def test_multi_allow_blank_omit_child_not_required_filter_required() -> None:
+    # child filters allowed to be empty, but if all of them are empty, the
+    # entire field is empty, which is not allowed when required=True
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(
+                child=serializers.CharField(
+                    allow_blank=True,
+                    required=False,
+                ),
+            ),
+            multi=Multi.ALLOW,
+            lookup="in",
+            blank="omit",
+            required=True,
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=&username=",
+    )
+    with pytest.raises(serializers.ValidationError, match=r"This field is required\."):
+        instance.get_groups()
+
+
+def test_multi_allow_correct_error_index_when_skipped() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(
+                child=serializers.CharField(
+                    allow_blank=True,
+                    required=False,
+                    min_length=3,
+                ),
+            ),
+            multi=Multi.ALLOW,
+            lookup="in",
+            blank="omit",
+            required=True,
+        )
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&username=&username=w",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username": {
+            2: [  # not 1
+                ErrorDetail(
+                    string="Ensure this field has at least 3 characters.",
+                    code="min_length",
+                )
+            ]
+        }
+    }
 
 
 def test_entry_repr() -> None:

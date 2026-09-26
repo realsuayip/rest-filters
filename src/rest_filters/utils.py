@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 import warnings
-from typing import TYPE_CHECKING, Any, Final, TypeVar
+from typing import TYPE_CHECKING, Any, Final, TypeAlias, TypeVar
 
 from django.db import models
 from django.db.models import Q
@@ -17,11 +17,14 @@ NotSet = enum.Enum("NotSet", "notset")
 notset: Final = NotSet.notset
 
 if TYPE_CHECKING:
+    from rest_framework.fields import _Empty
     from rest_framework.views import APIView
 
     from rest_filters import Filter, FilterSet
 
     AnyField = Field[Any, Any, Any, Any]
+
+    ParsedValue: TypeAlias = str | _Empty | list[str | _Empty]
 else:
     AnyField = Field
 
@@ -69,8 +72,11 @@ def _filter_to_schema(
     f: Filter,
     /,
     *,
+    filterset: type[FilterSet[Any]],
     view: APIView,
 ) -> dict[str, Any] | None:
+    from rest_filters.conf import Multi  # noqa: PLC0415
+
     try:
         field = f.get_serializer()
     except ValueError:
@@ -83,12 +89,13 @@ def _filter_to_schema(
         schema = view.schema._map_serializer(field, "request")  # type: ignore[union-attr]
     else:
         schema = view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr]
+    multi = f._multi or filterset.options.multi
     return {
         "name": f.get_param_name(),
         "in": "query",
         "required": f.required,
         "schema": schema,
-        "explode": False,
+        "explode": multi == Multi.ALLOW,
     }
 
 
@@ -102,7 +109,7 @@ def _get_filterset_schema(
         for f in [field, *field.get_all_children()]:
             if f.namespace:
                 continue
-            schema = _filter_to_schema(f, view=view)
+            schema = _filter_to_schema(f, filterset=filterset, view=view)
             if schema is not None:
                 ret.append(schema)
     return ret

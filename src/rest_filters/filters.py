@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import copy
+import warnings
 from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 from django.db.models.expressions import BaseExpression, Combinable
+from django.utils.translation import gettext
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
+from rest_filters.conf import Multi
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
@@ -18,12 +21,15 @@ if TYPE_CHECKING:
     from rest_framework.fields import _Empty
 
     from rest_filters.filtersets import FilterSet
-
+    from rest_filters.utils import ParsedValue
 
 __all__ = [
     "Entry",
     "Filter",
 ]
+
+
+normalizer = serializers.CharField(allow_blank=True)
 
 
 class Entry:
@@ -78,7 +84,7 @@ class Entry:
 
 
 class Filter:
-    def __init__(
+    def __init__(  # noqa: C901
         self,
         f: AnyField | None = None,
         /,
@@ -94,6 +100,7 @@ class Filter:
         children: list[Filter] | None = None,
         namespace: bool = False,
         blank: str | None = None,
+        multi: Multi | None = None,
         noop: bool = False,
         required: bool | None = None,
     ) -> None:
@@ -128,6 +135,8 @@ class Filter:
          available.
         :param blank: Determines :py:attr:`rest_filters.conf.AppSettings.BLANK`
          behavior for this filter.
+        :param multi: Determines :py:attr:`rest_filters.conf.AppSettings.MULTI`
+         behavior for this filter.
         :param noop: Set this to ``True`` to disable query expression
          resolution. In this mode, the query parameter won't do any filtering
          however, its value will be validated and available.
@@ -146,6 +155,8 @@ class Filter:
             raise ValueError("Reserved group 'chain' cannot be used as namespace")
         if blank is not None and blank not in ("keep", "omit"):
             raise ValueError("blank must either be 'keep' or 'omit'")
+        if multi is not None and multi not in iter(Multi):
+            raise ValueError(f"{multi!r} is not valid multi value")
         if template and lookup:
             raise ValueError(
                 "'template' and 'lookup' cannot be used together. Add lookup to"
@@ -158,6 +169,13 @@ class Filter:
                 "'method' and 'negate' cannot be used together. Negate the"
                 " expression in your method instead."
             )
+        if type(f) is serializers.ListField:
+            warnings.warn(
+                "Use of `rest_framework.fields.ListField` is not recommended"
+                " for Filter, use `rest_filters.fields.ListField` instead for"
+                " predictable behavior",
+                stacklevel=2,
+            )
 
         self._group = group
         self.aliases = aliases
@@ -167,6 +185,7 @@ class Filter:
         self._required = required
 
         self._blank = blank
+        self._multi = multi
         self.method = method
         self._param = param
         self._serializer = f
@@ -214,6 +233,13 @@ class Filter:
         return self._blank
 
     @property
+    def multi(self) -> Multi:
+        if self._multi is None:
+            filterset = self.get_filterset()
+            return filterset.options.multi
+        return self._multi
+
+    @property
     def required(self) -> bool:
         if self._required is None:
             if self.parent is not None:
@@ -256,9 +282,9 @@ class Filter:
             return f"{namespace}.{name}"
         return name
 
-    def get_query_value(self, query_dict: QueryDict) -> str | _Empty:
+    def get_query_value(self, query_dict: QueryDict) -> list[str]:
         param = self.get_param_name()
-        return query_dict.get(param, empty)
+        return query_dict.getlist(param)
 
     def get_serializer(self) -> AnyField:
         if self._serializer is not None:
@@ -308,17 +334,41 @@ class Filter:
         serializer.required = self.required
         return serializer
 
-    def run_validation(self, value: str | _Empty, serializer: AnyField) -> Any:
+    def run_validation(
+        self,
+        value: ParsedValue,
+        serializer: AnyField,
+    ) -> Any:
         filterset, param = self.get_filterset(), self.get_param_name()
         return filterset.run_validation(value, serializer, param)
 
-    def parse_value(self, value: str | _Empty) -> Any:
-        if value is not empty:
-            value = serializers.CharField(allow_blank=True).run_validation(value)
-            if value == "" and self.blank == "omit":
-                value = empty
+    def normalize_value(self, value: str) -> str | _Empty:
+        value = normalizer.run_validation(value)
+        if value == "" and self.blank == "omit":
+            return empty
+        return value
+
+    def parse_value(self, value: list[str]) -> Any:
+        size = len(value)
+        if not size:
+            p: ParsedValue = empty
+        elif size > 1 and self.multi == Multi.DISALLOW:
+            raise serializers.ValidationError(
+                gettext(
+                    "This query parameter does not allow specifying multiple values."
+                )
+            )
+        elif self.multi in (Multi.FIRST, Multi.LAST, Multi.DISALLOW):
+            index = -1 if self.multi == Multi.LAST else 0
+            p = self.normalize_value(value[index])
+        elif self.multi == Multi.ALLOW:
+            p = [self.normalize_value(v) for v in value]
+            if all(v is empty for v in p):
+                p = empty
+        else:
+            raise ValueError(f"{self.multi!r} is not a valid multi choice")
         serializer = self.resolve_serializer()
-        return self.run_validation(value, serializer)
+        return self.run_validation(p, serializer)
 
     def resolve_entry_attrs(self, value: Any) -> Entry:
         if self.template is not None:
@@ -344,8 +394,9 @@ class Filter:
         )
 
     def resolve_entry(self, query_dict: QueryDict) -> Entry | None:
+        value = self.get_query_value(query_dict)
         try:
-            value = self.parse_value(self.get_query_value(query_dict))
+            value = self.parse_value(value)
         except SkipField:
             return None
         if self.noop:
