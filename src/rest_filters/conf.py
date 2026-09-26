@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -8,6 +9,43 @@ from django.conf import settings
 from rest_framework.settings import api_settings
 
 from rest_filters.utils import notset
+
+
+class Multi(str, enum.Enum):
+    """
+    Determines what to do in the case of multivalued query parameters.
+
+    For example: ``?value=hello&value=world``
+    """
+
+    ALLOW = "allow"
+    """
+    Allow multi value query parameters. All values will be collected into
+    a list. Notice that resulting value will always be a list, even if there is
+    a single parameter.
+
+    This mode is not compatible with DRF's ``ListField`` due to an implementation
+    detail. Use :py:class:`rest_filters.fields.ListField` instead to get correct
+    behavior.
+    """
+
+    DISALLOW = "disallow"
+    """
+    Disallow multi value query parameters. If a parameter is provided more than
+    once, an error message will be displayed.
+    """
+
+    FIRST = "first"
+    """
+    Allow multi value query parameters, but only use **the first value**. Other
+    values are discarded.
+    """
+
+    LAST = "last"
+    """
+    Allow multi value query parameters, but only use **the last value**. Other
+    values are discarded.
+    """
 
 
 def get_default_known_parameters() -> list[str]:
@@ -45,6 +83,13 @@ class AppSettings:
     Determines how empty query parameters are handled. Default is ``omit``
     which behaves as if query parameter was not provided. Setting this to
     ``keep`` will cause empty values to be parsed by the related field.
+    """
+    MULTI: Multi = Multi.DISALLOW
+    """
+    Determines how multi-value query parameters are handled. See
+    :py:class:`rest_filters.Multi` for available options. By default, multiple
+    value query parameters are not allowed and an error message will be
+    displayed.
     """
     KNOWN_PARAMETERS: list[str] = notset  # type: ignore[assignment]
     """

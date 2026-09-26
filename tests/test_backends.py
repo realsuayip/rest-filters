@@ -9,7 +9,8 @@ from rest_framework.test import APIRequestFactory
 
 import pytest
 
-from rest_filters import Filter, FilterBackend, FilterSet
+from rest_filters import Filter, FilterBackend, FilterSet, Multi
+from rest_filters.fields import ListField
 from tests.testapp.models import User
 from tests.testapp.views import UserSerializer
 
@@ -244,6 +245,82 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             },
             "explode": False,
         },
+    ]
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+)
+def test_filter_backend_get_schema_operation_parameters_case_multi() -> None:
+    class SomeFilterSet(FilterSet[User]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+            multi=Multi.ALLOW,
+        )
+
+    class UserView(ListAPIView[User]):
+        serializer_class = UserSerializer
+        queryset = User.objects.none()
+        filter_backends = [FilterBackend]
+        filterset_class = SomeFilterSet
+
+    factory = APIRequestFactory()
+    view = UserView()
+    view.request = factory.get("/?username=")
+
+    schema = FilterBackend().get_schema_operation_parameters(view)
+    assert schema == [
+        {
+            "name": "username",
+            "in": "query",
+            "required": False,
+            "schema": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "explode": True,
+        }
+    ]
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+)
+def test_filter_backend_get_schema_operation_parameters_case_multi_filterset() -> None:
+    class SomeFilterSet(FilterSet[User]):
+        username = Filter(
+            ListField(child=serializers.CharField()),
+        )
+
+        class Meta:
+            multi = Multi.ALLOW
+
+    class UserView(ListAPIView[User]):
+        serializer_class = UserSerializer
+        queryset = User.objects.none()
+        filter_backends = [FilterBackend]
+        filterset_class = SomeFilterSet
+
+    factory = APIRequestFactory()
+    view = UserView()
+    view.request = factory.get("/?username=")
+
+    schema = FilterBackend().get_schema_operation_parameters(view)
+    assert schema == [
+        {
+            "name": "username",
+            "in": "query",
+            "required": False,
+            "schema": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "explode": True,
+        }
     ]
 
 
