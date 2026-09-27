@@ -211,6 +211,7 @@ class Filter:
             "negate",
             "noop",
             "_blank",
+            "_multi",
             "method",
             "_param",
             "_serializer",

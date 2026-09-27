@@ -193,10 +193,23 @@ def test_namespace_filter_without_children() -> None:
 def test_filter_repr() -> None:
     f = Filter(serializers.DateTimeField(), param="created")
     assert (
-        repr(f) == "Filter(_field=None, lookup='', template=None, _group=None,"
-        " aliases=None, negate=False, noop=False, _blank=None, method=None,"
-        " _param='created', _serializer=DateTimeField(), _filterset=None,"
-        " namespace=False, children=[])"
+        repr(f) == "Filter("
+        "_field=None,"
+        " lookup='',"
+        " template=None,"
+        " _group=None,"
+        " aliases=None,"
+        " negate=False,"
+        " noop=False,"
+        " _blank=None,"
+        " _multi=None,"
+        " method=None,"
+        " _param='created',"
+        " _serializer=DateTimeField(),"
+        " _filterset=None,"
+        " namespace=False,"
+        " children=[]"
+        ")"
     )
 
 
