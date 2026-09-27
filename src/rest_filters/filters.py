@@ -12,7 +12,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
-from rest_filters.conf import Multi
+from rest_filters.conf import Blank, Multi
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
@@ -99,7 +99,7 @@ class Filter:
         param: str | None = None,
         children: list[Filter] | None = None,
         namespace: bool = False,
-        blank: str | None = None,
+        blank: Blank | None = None,
         multi: Multi | None = None,
         noop: bool = False,
         required: bool | None = None,
@@ -153,8 +153,8 @@ class Filter:
             raise ValueError("Group names must be valid Python identifiers")
         if group is not None and group.startswith("chain."):
             raise ValueError("Reserved group 'chain' cannot be used as namespace")
-        if blank is not None and blank not in ("keep", "omit"):
-            raise ValueError("blank must either be 'keep' or 'omit'")
+        if blank is not None and blank not in iter(Blank):
+            raise ValueError(f"{blank!r} is not valid blank value")
         if multi is not None and multi not in iter(Multi):
             raise ValueError(f"{multi!r} is not valid multi value")
         if template and lookup:
@@ -227,7 +227,7 @@ class Filter:
         self.name = name
 
     @property
-    def blank(self) -> str:
+    def blank(self) -> Blank:
         if self._blank is None:
             filterset = self.get_filterset()
             return filterset.options.blank
@@ -345,7 +345,7 @@ class Filter:
 
     def normalize_value(self, value: str) -> str | _Empty:
         value = normalizer.run_validation(value)
-        if value == "" and self.blank == "omit":
+        if value == "" and self.blank == Blank.OMIT:
             return empty
         return value
 
