@@ -8,7 +8,7 @@ from rest_framework.exceptions import ErrorDetail
 
 import pytest
 
-from rest_filters import Filter, FilterSet, Multi
+from rest_filters import Blank, Filter, FilterSet, Multi
 from rest_filters.fields import ListField
 from rest_filters.filters import Entry
 from tests.test_filters import get_filterset_instance
@@ -23,7 +23,7 @@ def test_blank_default() -> None:
     assert groups == {}
 
 
-@override_settings(REST_FILTERS={"BLANK": "omit"})
+@override_settings(REST_FILTERS={"BLANK": Blank.OMIT})
 def test_blank_omit() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
@@ -33,7 +33,7 @@ def test_blank_omit() -> None:
     assert groups == {}
 
 
-@override_settings(REST_FILTERS={"BLANK": "keep"})
+@override_settings(REST_FILTERS={"BLANK": Blank.KEEP})
 def test_blank_keep() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(allow_blank=True))

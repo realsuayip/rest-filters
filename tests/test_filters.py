@@ -13,7 +13,7 @@ from rest_framework.test import APIRequestFactory
 
 import pytest
 
-from rest_filters import Filter, FilterSet, Multi
+from rest_filters import Blank, Filter, FilterSet, Multi
 from rest_filters.fields import ListField
 from rest_filters.filters import Entry
 from rest_filters.utils import AnyField, notset
@@ -74,14 +74,14 @@ def test_filter_group_chain_used_as_subgroup() -> None:
 
 
 def test_filter_blank_invalid_choice() -> None:
-    with pytest.raises(ValueError, match="blank must either be 'keep' or 'omit'"):
-        Filter(blank="empty")
+    with pytest.raises(ValueError, match="'empty' is not valid blank value"):
+        Filter(blank="empty")  # type: ignore[arg-type]
 
-    f1 = Filter(blank="keep")
-    f2 = Filter(blank="omit")
+    f1 = Filter(blank=Blank.KEEP)
+    f2 = Filter(blank=Blank.OMIT)
 
-    assert f1.blank == "keep"
-    assert f2.blank == "omit"
+    assert f1.blank == Blank.KEEP
+    assert f2.blank == Blank.OMIT
 
 
 def test_filter_template_and_field_provided() -> None:
@@ -629,7 +629,7 @@ def test_filter_parse_value() -> None:
 
 def test_filter_parse_value_case_blank_keep() -> None:
     class SomeFilterSet(FilterSet[Any]):
-        username = Filter(serializers.CharField(), blank="keep")
+        username = Filter(serializers.CharField(), blank=Blank.KEEP)
 
     filterset = get_filterset_instance(SomeFilterSet)
 
@@ -827,7 +827,7 @@ def test_multi_allow_blank_keep() -> None:
             ListField(child=serializers.CharField(allow_blank=True)),
             multi=Multi.ALLOW,
             lookup="in",
-            blank="keep",
+            blank=Blank.KEEP,
         )
 
     instance = get_filterset_instance(
@@ -857,7 +857,7 @@ def test_multi_allow_blank_omit_child_not_required() -> None:
             ),
             multi=Multi.ALLOW,
             lookup="in",
-            blank="omit",
+            blank=Blank.OMIT,
         )
 
     instance = get_filterset_instance(
@@ -889,7 +889,7 @@ def test_multi_allow_blank_omit_child_not_required_filter_required() -> None:
             ),
             multi=Multi.ALLOW,
             lookup="in",
-            blank="omit",
+            blank=Blank.OMIT,
             required=True,
         )
 
@@ -913,7 +913,7 @@ def test_multi_allow_correct_error_index_when_skipped() -> None:
             ),
             multi=Multi.ALLOW,
             lookup="in",
-            blank="omit",
+            blank=Blank.OMIT,
             required=True,
         )
 
@@ -923,7 +923,7 @@ def test_multi_allow_correct_error_index_when_skipped() -> None:
     )
     with pytest.raises(serializers.ValidationError) as ctx:
         instance.get_groups()
-    assert ctx.value.detail == {
+    assert ctx.value.detail == {  # type: ignore[comparison-overlap]
         "username": {
             2: [  # not 1
                 ErrorDetail(

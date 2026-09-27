@@ -16,7 +16,7 @@ specified.
 
 .. important::
 
-    If you are using ``blank="omit"`` (which is the default) blank values
+    If you are using ``blank=Blank.OMIT`` (which is the default) blank values
     (e.g., ``?role=``) will be treated as not provided; this will make default
     value take over.
 

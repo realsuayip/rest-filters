@@ -14,7 +14,7 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.settings import api_settings
 
-from rest_filters.conf import app_settings
+from rest_filters.conf import Blank, app_settings
 from rest_filters.filters import Entry, Filter
 from rest_filters.utils import (
     AnyField,
@@ -81,7 +81,7 @@ class Options:
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,
-        blank: str | NotSet = notset,
+        blank: Blank | NotSet = notset,
         multi: Multi | NotSet = notset,
         default_group: str | NotSet = notset,
     ) -> None:
@@ -139,7 +139,7 @@ class Options:
         return self._handle_unknown_parameters
 
     @property
-    def blank(self) -> str:
+    def blank(self) -> Blank:
         if self._blank is notset:
             return app_settings.BLANK
         return self._blank

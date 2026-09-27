@@ -2,13 +2,31 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any
 
 from django.conf import settings
 
 from rest_framework.settings import api_settings
 
 from rest_filters.utils import notset
+
+
+class Blank(str, enum.Enum):
+    """
+    Determines how empty query parameters are handled.
+
+    For example: ``?value=``
+    """
+
+    KEEP = "keep"
+    """
+    Keep empty query parameter as a blank string.
+    """
+
+    OMIT = "omit"
+    """
+    Treat this parameter as if it was not provided.
+    """
 
 
 class Multi(str, enum.Enum):
@@ -73,16 +91,17 @@ class AppSettings:
     .. code-block:: python
 
         REST_FILTERS = {
-            "BLANK": "keep",
+            "BLANK": Blank.KEEP,
             "KNOWN_PARAMETERS": ["page", "page_size"],
         }
     """
 
-    BLANK: Literal["keep", "omit"] = "omit"
+    BLANK: Blank = Blank.OMIT
     """
-    Determines how empty query parameters are handled. Default is ``omit``
-    which behaves as if query parameter was not provided. Setting this to
-    ``keep`` will cause empty values to be parsed by the related field.
+    Determines how empty query parameters are handled. Default is
+    :py:attr:`rest_filters.Blank.OMIT`, which behaves as if query parameter
+    was not provided. Setting this to :py:attr:`rest_filters.Blank.KEEP` will
+    cause empty values to be parsed by the related field.
     """
     MULTI: Multi = Multi.DISALLOW
     """
