@@ -13,6 +13,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SkipField, empty
 
 from rest_filters.conf import Blank, Multi
+from rest_filters.fields import ListField
 from rest_filters.utils import AnyField, fill_q_template
 
 if TYPE_CHECKING:
@@ -169,7 +170,7 @@ class Filter:
                 "'method' and 'negate' cannot be used together. Negate the"
                 " expression in your method instead."
             )
-        if type(f) is serializers.ListField:
+        if isinstance(f, serializers.ListField) and not isinstance(f, ListField):
             warnings.warn(
                 "Use of `rest_framework.fields.ListField` is not recommended"
                 " for Filter, use `rest_filters.fields.ListField` instead for"
