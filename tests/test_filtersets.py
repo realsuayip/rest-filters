@@ -16,7 +16,7 @@ import pytest
 from rest_filters import Blank, Filter, FilterSet, Multi
 from rest_filters.constraints import Constraint, MutuallyExclusive
 from rest_filters.filters import Entry
-from rest_filters.filtersets import Entries, Options
+from rest_filters.filtersets.base import Entries, Options
 from rest_filters.utils import notset
 from tests.test_filters import get_filterset_instance
 from tests.testapp.models import User

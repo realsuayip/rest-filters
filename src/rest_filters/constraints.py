@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from django.utils.functional import _StrOrPromise as StrOrPromise
 
-    from rest_filters.filtersets import FilterSet
+    from rest_filters.filtersets.base import BaseFilterSet
 else:
     from django.utils.functional import Promise as StrPromise
 
@@ -38,7 +38,7 @@ class Constraint:
     ) -> None:
         self._message = message
         self.kwargs = kwargs
-        self.filterset: FilterSet[Any] | None = None
+        self.filterset: BaseFilterSet | None = None
 
     def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         message = self._message or gettext(

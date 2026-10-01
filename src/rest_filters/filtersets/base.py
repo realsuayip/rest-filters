@@ -6,7 +6,7 @@ import itertools
 import operator
 from collections import defaultdict
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, Generic, TypeAlias, final
+from typing import TYPE_CHECKING, Any, TypeAlias, final
 
 from django.utils.translation import gettext
 
@@ -19,7 +19,6 @@ from rest_filters.filters import Entry, Filter
 from rest_filters.utils import (
     AnyField,
     NotSet,
-    _MT_co,
     merge_errors,
     notset,
 )
@@ -27,18 +26,14 @@ from rest_filters.utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from django.db.models import QuerySet
     from django.http import QueryDict
-
-    from rest_framework.request import Request
-    from rest_framework.views import APIView
 
     from rest_filters.conf import Multi
     from rest_filters.constraints import Constraint
     from rest_filters.utils import ParsedValue
 
 __all__ = [
-    "FilterSet",
+    "BaseFilterSet",
 ]
 
 Entries: TypeAlias = dict[str, Entry]
@@ -157,26 +152,18 @@ class Options:
         return self._default_group
 
 
-class FilterSet(Generic[_MT_co]):
+class BaseFilterSet:
     options: Options
     compiled_fields: dict[str, Filter]
 
-    def __init__(
-        self,
-        request: Request,
-        queryset: QuerySet[_MT_co],
-        view: APIView,
-    ) -> None:
-        self.request = request
-        """Django REST framework ``Request`` object."""
-        self.queryset = queryset
-        self.view = view
-        """View instance for this request."""
-
+    def __init__(self) -> None:
         self._fields = copy.deepcopy(self.compiled_fields)
         self._constraints = copy.deepcopy(self.options.constraints)
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
+        # https://github.com/python/cpython/issues/114326
+        super().__init_subclass__()
+
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in OPTION_NAMES}
             options = Options(**opts)
@@ -239,12 +226,6 @@ class FilterSet(Generic[_MT_co]):
             )
         return ret
 
-    def get_query_params(self) -> QueryDict:
-        return self.request.query_params
-
-    def get_known_parameters(self) -> list[str]:
-        return self.options.known_parameters
-
     def get_groups(self) -> tuple[Groups, dict[str, Any]]:
         params, fields, known_parameters = (
             self.get_query_params(),
@@ -278,23 +259,6 @@ class FilterSet(Generic[_MT_co]):
             self.handle_errors(errordict)
         return dict(groupdict), valuedict
 
-    def add_to_queryset(
-        self, queryset: QuerySet[_MT_co], entry: Entry
-    ) -> QuerySet[_MT_co]:
-        if entry.expression is None:
-            return queryset
-        if entry.aliases:
-            queryset = queryset.alias(**entry.aliases)
-        return queryset.filter(entry.expression)
-
-    def filter_group(
-        self,
-        queryset: QuerySet[_MT_co],
-        group: str,
-        entries: Entries,
-    ) -> QuerySet[_MT_co]:
-        return self.add_to_queryset(queryset, self.get_group_entry(group, entries))
-
     def _resolve_group_namespace(
         self,
         root: str,
@@ -316,17 +280,6 @@ class FilterSet(Generic[_MT_co]):
         if len(children) == 1:
             return next(iter(children.values()))
         return self.get_group_entry(f"@{root}", children)
-
-    def filter_group_namespace(
-        self,
-        queryset: QuerySet[_MT_co],
-        root: str,
-        groups: Groups,
-    ) -> QuerySet[_MT_co]:
-        return self.add_to_queryset(
-            queryset,
-            self._resolve_group_namespace(root, groups),
-        )
 
     def get_combinator(self, group: str, entries: Entries) -> Callable[..., Any]:
         """
@@ -371,41 +324,11 @@ class FilterSet(Generic[_MT_co]):
             expression=expression,
         )
 
-    def filter_queryset(self) -> QuerySet[_MT_co]:
-        queryset = self.queryset
-        groupdict, valuedict = self.get_groups()
+    def get_query_params(self) -> QueryDict:
+        raise NotImplementedError
 
-        for entry in groupdict.pop("chain", {}).values():
-            queryset = self.add_to_queryset(queryset, entry)
-
-        ns: defaultdict[str, Groups] = defaultdict(dict)
-        for name, entries in groupdict.items():
-            root = name.split(".", maxsplit=1)[0]
-            ns[root][name] = entries
-
-        for root, groups in ns.items():
-            if len(groups) == 1:
-                group, entries = next(iter(groups.items()))
-                queryset = self.filter_group(queryset, group, entries)
-            else:
-                queryset = self.filter_group_namespace(queryset, root, groups)
-        return self.get_queryset(queryset, valuedict)
-
-    def get_queryset(
-        self,
-        queryset: QuerySet[_MT_co],
-        values: dict[str, Any],
-    ) -> QuerySet[_MT_co]:
-        """
-        Returns the final QuerySet object. At this point, all the filters are
-        applied. Override this method to perform operations on QuerySet that
-        are otherwise not possible, such as ``order_by()`` and ``distinct()``
-        calls.
-
-        :param queryset: Filtered QuerySet object.
-        :param values: Parsed query parameters.
-        """
-        return queryset
+    def get_known_parameters(self) -> list[str]:
+        return self.options.known_parameters
 
     def get_fields(self) -> dict[str, Filter]:
         """
@@ -440,17 +363,7 @@ class FilterSet(Generic[_MT_co]):
         return serializer  # type: ignore[return-value]
 
     def get_serializer_context(self, param: str) -> dict[str, Any]:
-        """
-        Get serializer context for the given param. By default, this will use
-        ``view.get_serializer_context()``. The context will also include this
-        FilterSet instance.
-
-        :param param: Parameter name.
-        :return: Context dictionary.
-        """
-        context: dict[str, Any] = self.view.get_serializer_context()  # type: ignore[attr-defined]
-        context["filterset"] = self
-        return context
+        return {"filterset": self}
 
     def run_validation(
         self, value: ParsedValue, serializer: AnyField, param: str

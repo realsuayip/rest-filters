@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from rest_framework.fields import _Empty
 
     from rest_filters.filtersets import FilterSet
+    from rest_filters.filtersets.base import BaseFilterSet
     from rest_filters.utils import ParsedValue
 
 __all__ = [
@@ -190,7 +191,7 @@ class Filter:
         self.method = method
         self._param = param
         self._serializer = f
-        self._filterset: FilterSet[Any] | None = None
+        self._filterset: BaseFilterSet | None = None
 
         self.namespace = namespace
         self.parent: Filter | None = None
@@ -300,7 +301,7 @@ class Filter:
             "Serializer could not be resolved for %r" % self.get_param_name()
         )
 
-    def get_filterset(self) -> FilterSet[Any]:
+    def get_filterset(self) -> BaseFilterSet:
         if self.parent:
             return self.parent.get_filterset()
         if self._filterset is None:
