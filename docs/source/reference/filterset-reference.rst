@@ -7,3 +7,8 @@ FilterSet Reference
     :members:
     :exclude-members: __init__
     :member-order: bysource
+
+.. autoclass:: rest_filters.filtersets.base.BaseFilterSet
+    :members:
+    :exclude-members: __init__
+    :member-order: bysource
