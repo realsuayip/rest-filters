@@ -77,6 +77,7 @@ def test_filterset_options_no_meta() -> None:
     assert options.blank == Blank.OMIT
     assert options.default_group == "chain"
     assert options.multi == Multi.DISALLOW
+    assert options.noop is False
 
 
 def test_filterset_options_partial_meta() -> None:
@@ -1269,6 +1270,85 @@ def test_get_groups_noop() -> None:
             ),
             "first_name": Entry(
                 group="names", aliases=None, value="john", expression=None
+            ),
+        },
+        "chain": {
+            "last_name": Entry(
+                group="chain", aliases=None, value="doe", expression=None
+            )
+        },
+    }
+
+    assert valuedict == {
+        "username": "hello",
+        "first_name": "john",
+        "last_name": "doe",
+    }
+
+
+def test_get_groups_noop_via_filterset() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names")
+        first_name = Filter(serializers.CharField(), group="names")
+        last_name = Filter(serializers.CharField())
+
+        class Meta:
+            noop = True
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+
+    groupdict, valuedict = instance.get_groups()
+    assert groupdict == {
+        "names": {
+            "username": Entry(
+                group="names", aliases=None, value="hello", expression=None
+            ),
+            "first_name": Entry(
+                group="names", aliases=None, value="john", expression=None
+            ),
+        },
+        "chain": {
+            "last_name": Entry(
+                group="chain", aliases=None, value="doe", expression=None
+            )
+        },
+    }
+
+    assert valuedict == {
+        "username": "hello",
+        "first_name": "john",
+        "last_name": "doe",
+    }
+
+
+def test_get_groups_noop_via_filterset_partial() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(), group="names")
+        first_name = Filter(serializers.CharField(), group="names", noop=False)
+        last_name = Filter(serializers.CharField())
+
+        class Meta:
+            noop = True
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+
+    groupdict, valuedict = instance.get_groups()
+    assert groupdict == {
+        "names": {
+            "username": Entry(
+                group="names", aliases=None, value="hello", expression=None
+            ),
+            "first_name": Entry(
+                group="names",
+                aliases=None,
+                value="john",
+                expression=Q(first_name="john"),
             ),
         },
         "chain": {

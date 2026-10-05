@@ -103,7 +103,7 @@ class Filter:
         namespace: bool = False,
         blank: Blank | None = None,
         multi: Multi | None = None,
-        noop: bool = False,
+        noop: bool | None = None,
         required: bool | None = None,
     ) -> None:
         """
@@ -183,7 +183,7 @@ class Filter:
         self.aliases = aliases
 
         self.negate = negate
-        self.noop = noop
+        self._noop = noop
         self._required = required
 
         self._blank = blank
@@ -211,7 +211,7 @@ class Filter:
             "_group",
             "aliases",
             "negate",
-            "noop",
+            "_noop",
             "_blank",
             "_multi",
             "method",
@@ -249,6 +249,13 @@ class Filter:
                 return self.parent.required
             return False
         return self._required
+
+    @property
+    def noop(self) -> bool:
+        if self._noop is None:
+            filterset = self.get_filterset()
+            return filterset.options.noop
+        return self._noop
 
     def bind(self, parent: Filter) -> None:
         self.parent = parent

@@ -50,6 +50,7 @@ OPTION_NAMES = (
     "handle_unknown_parameters",
     "blank",
     "multi",
+    "noop",
 )
 
 
@@ -65,6 +66,7 @@ class Options:
         "combinators",
         "constraints",
         "fields",
+        "noop",
     )
 
     def __init__(
@@ -79,6 +81,7 @@ class Options:
         blank: Blank | NotSet = notset,
         multi: Multi | NotSet = notset,
         default_group: str | NotSet = notset,
+        noop: bool | NotSet = notset,
     ) -> None:
         """
         The following parameters can be used as class attributes in
@@ -101,6 +104,10 @@ class Options:
         :param multi: Overrides :py:attr:`rest_filters.conf.AppSettings.MULTI`
         :param default_group:
          Overrides :py:attr:`rest_filters.conf.AppSettings.DEFAULT_GROUP`
+        :param noop:
+         Default value for the ``noop`` parameter for this FilterSet.
+         Set this to ``True`` to disable filtering behavior while keeping
+         validation.
         """
         self._known_parameters = known_parameters
         self._extend_known_parameters = extend_known_parameters
@@ -113,10 +120,13 @@ class Options:
             constraints = []
         if combinators is notset:
             combinators = {}
+        if noop is notset:
+            noop = False
 
         self.fields = fields
         self.constraints = constraints
         self.combinators = combinators
+        self.noop = noop
 
     @property
     def known_parameters(self) -> list[str]:

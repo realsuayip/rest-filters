@@ -42,7 +42,6 @@ def test_filter_defaults() -> None:
     assert f.aliases is None
     assert f.template is None
     assert f.method is None
-    assert f.noop is False
     assert f.required is False
 
 
@@ -200,7 +199,7 @@ def test_filter_repr() -> None:
         " _group=None,"
         " aliases=None,"
         " negate=False,"
-        " noop=False,"
+        " _noop=None,"
         " _blank=None,"
         " _multi=None,"
         " method=None,"
