@@ -50,39 +50,31 @@ Key features
 ------------
 
 ``rest-filters`` is specifically designed to be used in a REST API context. You
-can enforce strict constraints on your parameters, how they are provided and
+can enforce strict constraints on your parameters, how they are parsed and
 how they interact with each other. Here are some key features:
 
-- **Use serializer fields to parse query parameters.** Existing serializer
-  fields used in request bodies can be reused, providing consistency in parsing
-  logic and validation error messages. This also simplifies the implementation
-  of custom fields by utilizing familiar serializer API.
-- **Support for default values on filter fields is built-in.** Defaults can be
-  static or dynamically computed at runtime.
-- **Use filter groups to combine related query components (e.g., using logical
-  operators such as OR, AND).** Filter groups provide a flexible mechanism for
-  expressing arbitrary boolean logic within filters, allowing for more precise
-  query construction.
-- **Utilize the constraint system to define and enforce rules between
-  independent filters.** Built-in support is provided for common use cases such
-  as mutual exclusivity and mutual inclusivity. Custom constraints can be
-  implemented to enforce arbitrary validation logic across filters.
-- **Define child filters to inherit behavior from parent filters, simplifying
-  the creation of closely related filters.** For example, filters like
-  ``created.gte``, ``created.lte``, or ``created.year`` can be implemented with
-  ease. Child filters also allow traversing relationships via foreign keys,
-  enabling expressions such as ``company.industry.name``.
-- **Use the serializer context to dynamically modify filter behavior at
-  runtime.** Filters can be added or removed based on conditions such as user
-  permissions. Additionally, reusable filter fields can be implemented to
-  encapsulate permission checks and other dynamic logic.
-- **Annotations can be added directly to the** ``QuerySet`` **within the filter
-  definition.** This enables the creation of filters based on simple
-  annotations without the need to implement method-based filters.
-- **By default, a** ``ValidationError`` **is raised when a user submits an
-  unrecognized query parameter.** If closely matching parameter names are
-  detected, the error message will provide suggestions to guide the user in a
-  self-documenting manner. This behavior is configurable and can be disabled if
-  desired.
-- **Query parameter names can be customized freely.** You don't need to stick
+- **Use serializer fields to parse query parameters.** You can reuse the same
+  fields you use in request bodies, so parsing and error messages stay
+  consistent.
+- **Set default values for filters.** Defaults can be a fixed value or
+  computed at runtime.
+- **Use filter groups.** Group related filters and combine them with ``AND``,
+  ``OR``, or your own logic.
+- **Set constraints between filters.** Built-in constraints include mutual
+  exclusivity and mutual inclusivity. You can also write custom constraints.
+- **Use child filters.** Related filters can inherit from a parent. For example,
+  ``created.gte``, ``created.lte``, or ``created.year``. Child filters can
+  also follow foreign keys, such as ``company.industry.name``.
+- **Change filter behavior at runtime.** Filters and FilterSets can use
+  serializer context. Allowing you, for example, to create permission-based
+  filters.
+- **Control your QuerySet.** You can add complex QuerySet annotations
+  in the filter definition, without having to write a custom method. You
+  can opt-out from QuerySet chaining behavior.
+- **Get verbose error messages.** Errors are raised when unrecognized query
+  parameters are used or multiple query parameters with the same name are
+  provided. All error messages related to filters, constraints, and unknown
+  parameters are propagated properly. All error behavior and messages can be
+  customized.
+- **Customize query parameter names freely.** You don't need to stick
   with Python identifiers.

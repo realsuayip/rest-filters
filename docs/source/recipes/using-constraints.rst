@@ -83,8 +83,8 @@ member of the ``fields`` will independently be dependent on fields in
 
 This constraint enables you to define a custom filtering condition directly
 through a method on the FilterSet, without the need to implement a separate
-constraint class. It's ideal for one-off, non-reusable constraints that apply
-only to a specific FilterSet.
+constraint class. It's ideal for constraints that apply only to a specific
+FilterSet.
 
 For example:
 

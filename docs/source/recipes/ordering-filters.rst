@@ -127,6 +127,5 @@ This FilterSet will allow ordering in these styles:
 - ``?ordering=created:desc:nulls_first,id``
 - ``?ordering=created:desc:nulls_first,id:desc:nulls_last``
 
-After implementing ordering style of your choice, you may choose to create a
-base class for it. You may then use this base in your future FilterSets for
-consistent ordering experience.
+Once you have an ordering style you like, you can put it on a base FilterSet
+and reuse it.

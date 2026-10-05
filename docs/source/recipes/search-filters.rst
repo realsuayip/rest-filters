@@ -90,7 +90,7 @@ implementation:
 
 In the example above, the following is happening:
 
-1. We created a filter which encapsulates search parameters, with
+1. We created a filter for the search parameters, with
    ``search.fields`` being the child of ``search``.
 2. We assigned a group named "search" to these filters so that they would fall
    into the same group. This allows us to use ``get_group_entry`` method to
@@ -107,10 +107,10 @@ In the example above, the following is happening:
    without a search term would raise a ``ValidationError``, informing user
    about the requirement.
 
-This example could be further extended by:
+You could take this further by:
 
-- Allowing lookups; for example, users could specify ``username`` for exact
-  lookups and ``username.icontains`` for substring lookups.
-- Using an additional query parameter to determine the logical operator.
+- Allowing lookups; for example, ``username`` for exact matches and
+  ``username.icontains`` for substring matches.
+- Adding a query parameter that picks the logical operator.
 
 This is left as an exercise for the reader.
