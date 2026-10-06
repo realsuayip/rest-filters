@@ -335,20 +335,47 @@ class BaseFilterSet:
         )
 
     def get_query_params(self) -> QueryDict:
+        """
+        Override this method in your subclasses to provide query params. The
+        return value must be a ``django.http.QueryDict`` instance.
+
+        See :py:attr:`rest_filters.FilterSet` for example implementation.
+        """
         raise NotImplementedError
 
     def get_known_parameters(self) -> list[str]:
+        """
+        Override this method extend or replace known parameters dynamically.
+        """
         return self.options.known_parameters
 
     def get_fields(self) -> dict[str, Filter]:
         """
         Resolve filters that are going to be used in this FilterSet. You may
-        override this method to dynamically add filters.
+        override this method to dynamically add or remove filters.
 
         .. danger::
 
             Make sure additional Filter instances are initialized inside this
-            method, using global variables will lead to dangling references.
+            method (or deepcopied). Using global variables will lead to
+            stale references. For example:
+
+            .. code-block:: python
+
+                def get_fields(self) -> dict[str, Filter]:
+                    fields = super().get_fields()
+                    fields["new_field"] = Filter(
+                        serializers.IntegerField(),
+                    )
+                    return fields
+
+            Notice that this is useful if you want to *hide* those additional
+            filters. For example if you have some internal filter that is only
+            enabled for certain IP's.
+
+            If you need to change the behavior of a public filter during
+            runtime, you should instead use method filters, or field serializer
+            context.
         """
         return self._fields
 
@@ -398,7 +425,7 @@ class BaseFilterSet:
         .. danger::
 
             Make sure additional Constraint instances are initialized inside
-            this method, using global variables will lead to dangling
+            this method, using global variables will lead to stale
             references.
         """
         return self._constraints
