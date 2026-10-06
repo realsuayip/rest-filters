@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
     from rest_framework.fields import _Empty
 
-    from rest_filters.filtersets import FilterSet
     from rest_filters.filtersets.base import BaseFilterSet
     from rest_filters.utils import ParsedValue
 
@@ -225,7 +224,7 @@ class Filter:
             args.append("%s=%r" % (name, attr))
         return "%s(%s)" % (self.__class__.__name__, ", ".join(args))
 
-    def __set_name__(self, owner: FilterSet[Any], name: str) -> None:
+    def __set_name__(self, owner: BaseFilterSet, name: str) -> None:
         self.name = name
 
     @property

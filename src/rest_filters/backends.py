@@ -27,7 +27,7 @@ __all__ = [
 
 
 class FilterBackend(BaseFilterBackend[_MT_inv]):
-    def _get_filterset_class(self, view: APIView) -> type[FilterSet[Any]] | None:
+    def _get_filterset_class(self, view: APIView) -> type[FilterSet[_MT_inv]] | None:
         from rest_filters import FilterSet  # noqa: PLC0415
 
         if (klass := getattr(view, "filterset_class", None)) and issubclass(

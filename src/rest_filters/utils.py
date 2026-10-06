@@ -20,7 +20,8 @@ if TYPE_CHECKING:
     from rest_framework.fields import _Empty
     from rest_framework.views import APIView
 
-    from rest_filters import Filter, FilterSet
+    from rest_filters import Filter
+    from rest_filters.filtersets.base import BaseFilterSet
 
     AnyField = Field[Any, Any, Any, Any]
 
@@ -72,7 +73,7 @@ def _filter_to_schema(
     f: Filter,
     /,
     *,
-    filterset: type[FilterSet[Any]],
+    filterset: type[BaseFilterSet],
     view: APIView,
 ) -> dict[str, Any] | None:
     from rest_filters.conf import Multi  # noqa: PLC0415
@@ -101,7 +102,7 @@ def _filter_to_schema(
 
 def _get_filterset_schema(
     *,
-    filterset: type[FilterSet[Any]],
+    filterset: type[BaseFilterSet],
     view: APIView,
 ) -> list[dict[str, Any]]:
     ret = []
