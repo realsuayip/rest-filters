@@ -110,6 +110,6 @@ class FilterSet(BaseFilterSet, Generic[_MT_co]):
         :param param: Parameter name.
         :return: Context dictionary.
         """
-        context: dict[str, Any] = self.view.get_serializer_context()  # type: ignore[attr-defined]
-        context["filterset"] = self
-        return context
+        context = super().get_serializer_context(param)
+        view_context = self.view.get_serializer_context()
+        return view_context | context
