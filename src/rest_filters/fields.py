@@ -1,17 +1,27 @@
 import csv
-from typing import Any
+from enum import Enum
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import django.core.exceptions
+from django.utils.translation import gettext_lazy
 
 from rest_framework import serializers
+from rest_framework.fields import SkipField, get_error_detail
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrOrPromise as StrOrPromise
+
+else:
+    from django.utils.functional import Promise as StrPromise
+
+    StrOrPromise = str | StrPromise
+
 
 __all__ = [
     "CSVField",
     "ListField",
+    "VerboseChoiceField",
 ]
-
-
-from rest_framework.fields import SkipField, get_error_detail
 
 
 class ListField(serializers.ListField):
@@ -62,3 +72,36 @@ class CSVField(ListField):
 
     def to_internal_value(self, data: Any) -> list[Any]:
         return super().to_internal_value(next(csv.reader([data])))
+
+
+class VerboseChoiceField(serializers.ChoiceField):
+    """
+    An alternative implementation of ``serializers.ChoiceField`` that also
+    informs users of the available choices when invalid input is provided.
+    """
+
+    default_error_messages: ClassVar[dict[str, StrOrPromise]] = {
+        "invalid_choice": gettext_lazy(
+            "'{input}' is not a valid choice, available choices are: {choices}"
+        ),
+    }
+
+    def to_internal_value(self, data: Any) -> Any:
+        if data == "" and self.allow_blank:
+            return ""
+        if isinstance(data, Enum) and str(data) != str(data.value):
+            data = data.value
+        try:
+            return self.choice_strings_to_values[str(data)]
+        except KeyError:
+            choices = ", ".join(
+                repr(
+                    str(
+                        key.value
+                        if isinstance(key, Enum) and str(key) != str(key.value)
+                        else key
+                    )
+                )
+                for key in self.choices
+            )
+            self.fail("invalid_choice", input=data, choices=choices)
