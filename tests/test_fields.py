@@ -1,6 +1,6 @@
 import enum
 
-from rest_framework import serializers
+from rest_framework import VERSION as DRF_VERSION, serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
 
@@ -47,6 +47,7 @@ def test_verbose_choice_field() -> None:
     ]
 
 
+@pytest.mark.skipif(DRF_VERSION < "3.15", reason="not supported for DRF 3.14")
 def test_verbose_choice_field_case_enum() -> None:
     class Status(int, enum.Enum):
         OPEN = 0
@@ -66,6 +67,7 @@ def test_verbose_choice_field_case_enum() -> None:
     ]
 
 
+@pytest.mark.skipif(DRF_VERSION < "3.15", reason="not supported for DRF 3.14")
 def test_verbose_choice_field_case_bare_enum() -> None:
     class Status(enum.Enum):
         OPEN = 0

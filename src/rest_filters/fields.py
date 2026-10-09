@@ -82,7 +82,7 @@ class VerboseChoiceField(serializers.ChoiceField):
 
     default_error_messages: ClassVar[dict[str, StrOrPromise]] = {
         "invalid_choice": gettext_lazy(
-            "'{input}' is not a valid choice, available choices are: {choices}"
+            "{input} is not a valid choice, available choices are: {choices}"
         ),
     }
 
@@ -104,4 +104,4 @@ class VerboseChoiceField(serializers.ChoiceField):
                 )
                 for key in self.choices
             )
-            self.fail("invalid_choice", input=data, choices=choices)
+            self.fail("invalid_choice", input=repr(str(data)), choices=choices)
