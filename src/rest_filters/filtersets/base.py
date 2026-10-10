@@ -19,6 +19,7 @@ from rest_filters.filters import Entry, Filter
 from rest_filters.utils import (
     AnyField,
     NotSet,
+    _get_filterset_schema,
     merge_errors,
     notset,
 )
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from django.http import QueryDict
+
+    from rest_framework.views import APIView
 
     from rest_filters.conf import Multi
     from rest_filters.constraints import Constraint
@@ -485,3 +488,7 @@ class BaseFilterSet:
         method to change the error format.
         """
         raise serializers.ValidationError(errordict)
+
+    @classmethod
+    def get_schema_operation_parameters(cls, view: APIView) -> list[dict[str, Any]]:
+        return _get_filterset_schema(filterset=cls, view=view)

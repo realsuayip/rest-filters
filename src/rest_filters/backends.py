@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from django.db.models import Model
 
-from rest_filters.utils import _get_filterset_schema
-
 if TYPE_CHECKING:
     from django.db.models import QuerySet
 
@@ -72,4 +70,4 @@ class FilterBackend(BaseFilterBackend[_MT_inv]):
         filterset = self._get_filterset_class(view)
         if filterset is None:
             return []
-        return _get_filterset_schema(filterset=filterset, view=view)
+        return filterset.get_schema_operation_parameters(view=view)
