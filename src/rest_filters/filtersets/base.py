@@ -491,4 +491,11 @@ class BaseFilterSet:
 
     @classmethod
     def get_schema_operation_parameters(cls, view: APIView) -> list[dict[str, Any]]:
+        """
+        Returns OpenAPI parameters for this FilterSet. You may override this
+        method to customize schema generation.
+
+        :param view: View instance used for schema generation.
+        :return: A list of parameter definitions.
+        """
         return _get_filterset_schema(filterset=cls, view=view)

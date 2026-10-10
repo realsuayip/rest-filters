@@ -12,6 +12,7 @@ Introduction
     concepts
     openapi-support
     migration-guide
+    changelog
 
 .. toctree::
     :hidden:
