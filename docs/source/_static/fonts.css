@@ -1,6 +1,15 @@
 body {
     --font-stack: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-stack--monospace: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --font-stack--monospace:
+        "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+code,
+kbd,
+pre,
+samp,
+.sig {
+    font-variant-ligatures: none;
 }
 
 article[role="main"] .highlight pre,

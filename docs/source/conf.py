@@ -27,6 +27,17 @@ autodoc_class_signature = "separated"
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
+html_theme_options = {
+    "dark_css_variables": {
+        "color-background-primary": "#000000",
+        "color-background-secondary": "#0d0d0d",
+        "color-background-hover": "#1a1a1a",
+        "color-sidebar-background": "#0d0d0d",
+        "color-sidebar-background-border": "#1c1c1c",
+        "color-toc-background": "#000000",
+        "color-content-foreground": "#ffffff",
+    },
+}
 html_static_path = ["_static"]
 html_css_files = [
     "https://fonts.googleapis.com/css2?family=Geist:wght@100..900"
