@@ -12,3 +12,6 @@ query parameters easier.
 
 .. autoclass:: rest_filters.fields.VerboseChoiceField
     :exclude-members: __new__, __init__
+
+.. autoclass:: rest_filters.fields.StrictBooleanField
+    :exclude-members: __new__, __init__

@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory
 import pytest
 
 from rest_filters import Filter, FilterBackend, FilterSet, Multi
-from rest_filters.fields import ListField
+from rest_filters.fields import ListField, StrictBooleanField
 from tests.testapp.models import User
 from tests.testapp.views import UserSerializer
 
@@ -149,6 +149,7 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
                 Filter(lookup="lte"),
             ],
         )
+        is_active = Filter(StrictBooleanField())
         details = Filter(SomeSerializer())
         missing = Filter()
 
@@ -232,6 +233,15 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             "in": "query",
             "required": False,
             "schema": {"type": "string", "format": "date"},
+            "explode": False,
+        },
+        {
+            "name": "is_active",
+            "in": "query",
+            "required": False,
+            "schema": {
+                "type": "boolean",
+            },
             "explode": False,
         },
         {

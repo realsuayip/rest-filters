@@ -20,6 +20,7 @@ else:
 __all__ = [
     "CSVField",
     "ListField",
+    "StrictBooleanField",
     "VerboseChoiceField",
 ]
 
@@ -105,3 +106,50 @@ class VerboseChoiceField(serializers.ChoiceField):
                 for key in self.choices
             )
             self.fail("invalid_choice", input=repr(str(data)), choices=choices)
+
+
+class StrictBooleanField(serializers.Field):
+    """
+    A boolean field that strictly requires ``true``, ``false`` or ``null``
+    (when ``allow_null=True``).
+
+    In contrast, ``serializers.BooleanField`` allows bool-ish values like:
+    ``0``, ``TRUE``, ``yes``, ``no``, ``off``. This field blocks such values.
+    """
+
+    default_error_messages: ClassVar[dict[str, StrOrPromise]] = {
+        "invalid": gettext_lazy(
+            "{input} is not a valid choice, available choices are: {choices}"
+        ),
+    }
+
+    def to_internal_value(self, data: Any) -> bool | None:
+        choices: dict[str, bool | None] = {"true": True, "false": False}
+        if self.allow_null:
+            choices["null"] = None
+        try:
+            return choices[data]
+        except (KeyError, TypeError):
+            self.fail(
+                "invalid",
+                input=repr(str(data)),
+                choices=", ".join(repr(c) for c in choices),
+            )
+
+    def to_representation(self, value: Any) -> bool | None:
+        if self.allow_null and value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        raise ValueError(f"cannot serialize object to bool: {value!r}")
+
+
+# Annotate fields with appropriate OpenAPI types if `drf_spectacular`
+# is installed.
+try:
+    from drf_spectacular.utils import extend_schema_field
+
+    StrictBooleanField = extend_schema_field(bool)(StrictBooleanField)
+
+except ImportError:
+    pass

@@ -6,7 +6,12 @@ from rest_framework.fields import empty
 
 import pytest
 
-from rest_filters.fields import CSVField, ListField, VerboseChoiceField
+from rest_filters.fields import (
+    CSVField,
+    ListField,
+    StrictBooleanField,
+    VerboseChoiceField,
+)
 
 
 def test_csv_field() -> None:
@@ -87,3 +92,37 @@ def test_verbose_choice_field_case_bare_enum() -> None:
             code="invalid_choice",
         )
     ]
+
+
+def test_strict_boolean_field() -> None:
+    f = StrictBooleanField()
+
+    assert f.run_validation("true") is True
+    assert f.run_validation("false") is False
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        f.run_validation("0")
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="'0' is not a valid choice, available choices are: 'true', 'false'",
+            code="invalid",
+        )
+    ]
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        f.run_validation("null")
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="'null' is not a valid choice, available choices are:"
+            " 'true', 'false'",
+            code="invalid",
+        )
+    ]
+
+
+def test_strict_boolean_field_allow_null() -> None:
+    f = StrictBooleanField(allow_null=True)
+
+    assert f.run_validation("true") is True
+    assert f.run_validation("false") is False
+    assert f.run_validation("null") is None
