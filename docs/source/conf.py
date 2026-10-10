@@ -28,6 +28,11 @@ autodoc_class_signature = "separated"
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
 html_static_path = ["_static"]
+html_css_files = [
+    "https://fonts.googleapis.com/css2?family=Geist:wght@100..900"
+    "&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap",
+    "fonts.css",
+]
 
 pygments_style = "default"
 pygments_dark_style = "github-dark"

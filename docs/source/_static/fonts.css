@@ -1,0 +1,9 @@
+body {
+    --font-stack: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-stack--monospace: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+article[role="main"] .highlight pre,
+article[role="main"] pre.literal-block {
+    line-height: 1.3;
+}
