@@ -20,10 +20,14 @@ Here is an implementation of a typical ordering field:
 
 .. code-block:: python
 
+    from rest_filters import Filter, FilterSet
+    from rest_filters.fields import CSVField, VerboseChoiceField
+
+
     class UserFilterSet(FilterSet[User]):
         ordering = Filter(
             CSVField(
-                child=serializers.ChoiceField(
+                child=VerboseChoiceField(
                     choices=[
                         "id",
                         "-id",
@@ -46,7 +50,7 @@ Here is an implementation of a typical ordering field:
 
 In this example:
 
-1. We defined a ``CSVField`` with ``ChoiceField`` as the child, containing the
+1. We defined a ``CSVField`` with ``VerboseChoiceField`` as the child, containing the
    possible ordering values. This will allow specifying multiple ordering
    fields while validating choices.
 2. We set a default value as fallback in case users don't specify ordering.

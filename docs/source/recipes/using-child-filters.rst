@@ -30,6 +30,9 @@ Here is an example filter that makes use of child filters:
 
 .. code-block:: python
 
+    from rest_filters import Filter
+
+
     created = Filter(
         serializers.DateField(),
         children=[

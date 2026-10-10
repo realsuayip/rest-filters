@@ -14,6 +14,8 @@ you may need to use request information to do some stuff.
 
     .. code-block:: python
 
+        from rest_filters import Filter
+
         from django.db.models import F, Value
         from django.db.models.functions import Concat
 
@@ -52,12 +54,14 @@ class. Here is an example:
 
 .. code-block:: python
 
+    from rest_filters import FilterSet
     from django.db.models import Q
+    from rest_filters.fields import VerboseChoiceField
 
 
     class RepositoryFilterSet(FilterSet[Repository]):
         scope = Filter(
-            serializers.ChoiceField(
+            VerboseChoiceField(
                 choices=["user", "organization"],
             ),
             method="filter_by_scope",
@@ -102,16 +106,17 @@ Here is another example:
 .. code-block:: python
 
     from django.db.models import Exists, OuterRef, Count, Q
+    from rest_filters.fields import StrictBooleanField
     from rest_filters.filters import Entry
 
 
     class RepositoryFilterSet(FilterSet[Repository]):
         is_starred = Filter(
-            serializers.BooleanField(),
+            StrictBooleanField(),
             method="filter_by_is_starred",
         )
         needs_misuse_review = Filter(
-            serializers.BooleanField(),
+            StrictBooleanField(),
             method="filter_by_needs_misuse_review",
         )
 

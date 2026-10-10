@@ -21,6 +21,9 @@ groups. For example:
 
 .. code-block:: python
 
+    from rest_filters import Filter, FilterSet
+
+
     class UserFilterSet(FilterSet[User]):
         city = Filter(serializers.CharField(), group="user.location")
 
@@ -117,6 +120,10 @@ users, so they will decide which group gets which combinator:
 
 .. code-block:: python
 
+    from rest_filters.filters import Entry
+    from rest_filters.fields import VerboseChoiceField
+
+
     class UserFilterSet(FilterSet[User]):
         location = Filter(
             serializers.CharField(),
@@ -126,7 +133,7 @@ users, so they will decide which group gets which combinator:
                 Filter(param="city", field="city"),
                 Filter(param="country", field="country"),
                 Filter(
-                    serializers.ChoiceField(choices=["and", "or"]),
+                    VerboseChoiceField(choices=["and", "or"]),
                     param="combine",
                     noop=True,
                 ),
@@ -140,14 +147,14 @@ users, so they will decide which group gets which combinator:
                 Filter(param="email", field="email"),
                 Filter(param="website", field="website"),
                 Filter(
-                    serializers.ChoiceField(choices=["and", "or"]),
+                    VerboseChoiceField(choices=["and", "or"]),
                     param="combine",
                     noop=True,
                 ),
             ],
         )
         combine = Filter(
-            serializers.ChoiceField(choices=["and", "or"]),
+            VerboseChoiceField(choices=["and", "or"]),
             group="user.meta",
             param="combine",
             noop=True,

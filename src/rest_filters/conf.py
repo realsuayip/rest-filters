@@ -90,6 +90,8 @@ class AppSettings:
 
     .. code-block:: python
 
+        from rest_filters import Blank
+
         REST_FILTERS = {
             "BLANK": Blank.KEEP,
             "KNOWN_PARAMETERS": ["page", "page_size"],

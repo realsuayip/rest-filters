@@ -51,6 +51,9 @@ Here is an example FilterSet that makes use of groups:
 
 .. code-block:: python
 
+    from rest_filters import Filter, FilterSet
+
+
     class SceneFilterSet(FilterSet[Scene]):
         geometry_color = Filter(
             serializers.CharField(),

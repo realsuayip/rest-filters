@@ -8,6 +8,9 @@ Here is a simple usage:
 
 .. code-block:: python
 
+    from rest_filters import Blank, Filter, FilterSet
+
+
     class UserFilterSet(FilterSet):
         role = Filter(serializers.CharField(default="developer"))
 

@@ -90,6 +90,7 @@ For example:
 
 .. code-block:: python
 
+    from rest_filters import Filter, FilterSet
     from datetime import timedelta
     from rest_framework.fields import empty
     from rest_filters.constraints import MethodConstraint, MutuallyInclusive

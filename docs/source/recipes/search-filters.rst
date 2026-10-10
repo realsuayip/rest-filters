@@ -9,6 +9,9 @@ This can easily be achieved using the template parameter. Here is an example:
 
 .. code-block:: python
 
+    from rest_filters import Filter, FilterSet
+
+
     class UserFilterSet(FilterSet[User]):
         search = Filter(
             serializers.CharField(),
@@ -33,7 +36,7 @@ implementation:
 .. code-block:: python
 
     from rest_filters.constraints import Dependency
-    from rest_filters.fields import CSVField
+    from rest_filters.fields import CSVField, VerboseChoiceField
     from rest_filters.filters import Entry
     from django.db.models import Q
 
@@ -45,7 +48,7 @@ implementation:
             children=[
                 Filter(
                     CSVField(
-                        child=serializers.ChoiceField(
+                        child=VerboseChoiceField(
                             choices=[
                                 "username",
                                 "email",
@@ -96,7 +99,7 @@ In the example above, the following is happening:
    into the same group. This allows us to use ``get_group_entry`` method to
    capture them together.
 3. We used a plain ``CharField`` for the search term and combined ``CSVField``
-   with ``ChoiceField`` to create a multiple choice query parameter for search
+   with ``VerboseChoiceField`` to create a multiple choice query parameter for search
    fields.
 4. We marked ``search.fields`` with ``noop=True`` so that it would not attempt
    to resolve a query expression, this is because this field by itself does
