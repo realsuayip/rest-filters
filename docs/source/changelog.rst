@@ -26,6 +26,10 @@ New features
 
 Changes
 
+- Fixed FilterSet inheritance. Previously, filters declared on base classes
+  were not properly compiled, so subclasses could not use them for filtering.
+  Subclasses can now override or remove inherited filters and select them
+  with ``Meta.fields``.
 - The existing :py:attr:`BLANK <rest_filters.conf.AppSettings.BLANK>` setting
   now uses the new :py:class:`~rest_filters.Blank` enum.
 - Filter serializer context no longer modifies the dictionary returned by

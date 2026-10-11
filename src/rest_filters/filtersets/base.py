@@ -6,7 +6,7 @@ import itertools
 import operator
 from collections import defaultdict
 from difflib import get_close_matches
-from typing import TYPE_CHECKING, Any, TypeAlias, final
+from typing import TYPE_CHECKING, Any, ClassVar, TypeAlias, final
 
 from django.utils.translation import gettext
 
@@ -169,6 +169,8 @@ class BaseFilterSet:
     options: Options
     compiled_fields: dict[str, Filter]
 
+    _declared_fields: ClassVar[dict[str, Filter]] = {}
+
     def __init__(self) -> None:
         self._fields = copy.deepcopy(self.compiled_fields)
         self._constraints = copy.deepcopy(self.options.constraints)
@@ -176,6 +178,12 @@ class BaseFilterSet:
     def __init_subclass__(cls, **kwargs: Any) -> None:
         # https://github.com/python/cpython/issues/114326
         super().__init_subclass__()
+
+        cls._declared_fields = {
+            name: field
+            for name, field in vars(cls).items()
+            if isinstance(field, Filter)
+        }
 
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in OPTION_NAMES}
@@ -213,12 +221,32 @@ class BaseFilterSet:
         return params, f
 
     @classmethod
+    def _collect_fields(cls) -> dict[str, Filter]:
+        # Collect inherited and local filter declarations in order, resolving
+        # overrides and removals.
+        fields: dict[str, Filter] = {}
+        for base in cls.__bases__:
+            # Direct bases are visited left to right. Each recursively collects
+            # its ancestors; recursion stops at BaseFilterSet, whose base is
+            # object.
+            if issubclass(base, BaseFilterSet):
+                for name, field in base._collect_fields().items():
+                    # Any local attribute suppresses the inherited filter,
+                    # including non-filter values such as `attr = None`.
+                    # Otherwise, the first base providing this name wins.
+                    if name not in vars(cls) and name not in fields:
+                        fields[name] = field
+        # Append local filters in declaration order, restoring local overrides.
+        # Non-filter overrides stay excluded. For A(x, y, z) -> B(x, c, f),
+        # the resulting order is y, z, x, c, f.
+        fields.update(cls._declared_fields)
+        return fields
+
+    @classmethod
     def _compile_fields(cls) -> dict[str, Filter]:
-        fields = {
-            name: field
-            for name, field in vars(cls).items()
-            if isinstance(field, Filter)
-        }
+        # Copy collected declarations and apply `Meta.fields` to select usable
+        # filters and children, rejecting any unknown field names.
+        fields = copy.deepcopy(cls._collect_fields())
         if cls.options.fields is notset:
             return fields
         ret, available = {}, []

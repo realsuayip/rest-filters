@@ -97,6 +97,59 @@ def test_filterset_options_partial_meta() -> None:
     assert options.constraints == []
 
 
+def test_filterset_inherits_meta_when_not_defined() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        created = Filter(serializers.DateField())
+
+        class Meta:
+            fields = ("username",)
+            noop = True
+
+    class Child(Parent):
+        first_name = Filter(serializers.CharField())
+
+    assert Child.options.fields == ("username",)
+    assert Child.options.noop is True
+    assert list(Child.compiled_fields) == ["username"]
+
+
+def test_filterset_local_meta_replaces_inherited_options() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        created = Filter(serializers.DateField())
+
+        class Meta:
+            fields = ("username",)
+            noop = True
+
+    class Child(Parent):
+        class Meta:
+            fields = ("created",)
+
+    assert Child.options.fields == ("created",)
+    assert Child.options.noop is False
+    assert list(Child.compiled_fields) == ["created"]
+
+
+def test_filterset_explicit_meta_inheritance_preserves_other_options() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        created = Filter(serializers.DateField())
+
+        class Meta:
+            fields = ("username",)
+            noop = True
+
+    class Child(Parent):
+        class Meta(Parent.Meta):
+            fields = ("created",)
+
+    assert Child.options.fields == ("created",)
+    assert Child.options.noop is True
+    assert list(Child.compiled_fields) == ["created"]
+
+
 def test_filterset_compiled_fields_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(min_length=3))
@@ -117,10 +170,159 @@ def test_filterset_compiled_fields_default() -> None:
         )
 
     compiled_fields = SomeFilterSet.compiled_fields
-    assert compiled_fields == {
-        "username": SomeFilterSet.username,
-        "created": SomeFilterSet.created,
-    }
+    assert list(compiled_fields) == ["username", "created"]
+
+
+def test_filterset_compiled_fields_inheritance() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Child(Parent):
+        created = Filter(serializers.DateField())
+
+    class Grandchild(Child):
+        pass
+
+    assert list(Child.compiled_fields) == ["username", "created"]
+    assert list(Grandchild.compiled_fields) == ["username", "created"]
+    assert Child.compiled_fields["username"] is not Parent.username
+
+
+def test_filterset_compiled_fields_inherited_overrides() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Child(Parent):
+        username = Filter(serializers.IntegerField())
+
+    class Removed(Parent):
+        username = None  # type: ignore[assignment]
+
+    assert list(Child.compiled_fields) == ["username"]
+    assert isinstance(
+        Child.compiled_fields["username"].get_serializer(),
+        serializers.IntegerField,
+    )
+    assert Removed.compiled_fields == {}
+
+
+def test_filterset_compiled_fields_multiple_inheritance() -> None:
+    class Left(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Right(FilterSet[Any]):
+        username = Filter(serializers.IntegerField())
+        created = Filter(serializers.DateField())
+
+    class Child(Left, Right):
+        pass
+
+    assert set(Child.compiled_fields) == {"username", "created"}
+    assert isinstance(
+        Child.compiled_fields["username"].get_serializer(),
+        serializers.CharField,
+    )
+
+
+def test_filterset_compiled_fields_inherited_children_are_independent() -> None:
+    class Parent(FilterSet[Any]):
+        created = Filter(
+            serializers.DateField(),
+            children=[
+                Filter(lookup="gte"),
+                Filter(lookup="lte"),
+            ],
+        )
+
+    class Child(Parent):
+        class Meta:
+            fields = ("created.gte",)
+
+    class Sibling(Parent):
+        pass
+
+    compiled = Child.compiled_fields["created"]
+    assert compiled.namespace is True
+    assert [child.get_param_name() for child in compiled.children] == ["created.gte"]
+
+    assert Parent.created.namespace is False
+    assert len(Parent.created.children) == 2
+    assert len(Sibling.compiled_fields["created"].children) == 2
+
+
+def test_filterset_compilation_preserves_nested_declarations() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        created = Filter(
+            serializers.DateField(),
+            children=[
+                Filter(
+                    lookup="date",
+                    children=[
+                        Filter(lookup="gte"),
+                        Filter(lookup="lte"),
+                    ],
+                ),
+            ],
+        )
+
+        class Meta:
+            fields = ("created.date.gte",)
+
+    declared = SomeFilterSet._declared_fields["created"]
+    compiled = SomeFilterSet.compiled_fields["created"]
+
+    assert compiled.namespace is True  # created
+    assert compiled.children[0].namespace is True  # created.date
+    assert [child.lookup for child in compiled.children[0].children] == ["gte"]
+
+    assert declared.namespace is False  # created
+    assert declared.children[0].namespace is False  # created.date
+    assert [child.lookup for child in declared.children[0].children] == ["gte", "lte"]
+
+
+def test_filterset_compiled_fields_can_restore_parent_exclusions() -> None:
+    class Parent(FilterSet[Any]):
+        created = Filter(
+            serializers.DateField(),
+            children=[Filter(lookup="gte"), Filter(lookup="lte")],
+        )
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            fields = ("created.gte",)
+
+    class Child(Parent):
+        class Meta:
+            fields = ("created", "created.lte", "username")
+
+    assert list(Child.compiled_fields) == ["created", "username"]
+    created = Child.compiled_fields["created"]
+    assert created.namespace is False
+    assert [child.get_param_name() for child in created.children] == ["created.lte"]
+
+    assert len(Parent.created.children) == 2
+    assert Parent.created.namespace is False
+    assert Parent.compiled_fields["created"].namespace is True
+    assert len(Parent.compiled_fields["created"].children) == 1
+
+
+def test_filterset_compiled_fields_diamond_uses_left_parent_registry() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Left(Parent):
+        pass
+
+    class Right(Parent):
+        username = Filter(serializers.IntegerField())
+
+    class Child(Left, Right):
+        pass
+
+    assert isinstance(
+        Child.compiled_fields["username"].get_serializer(),
+        serializers.CharField,
+    )
 
 
 def test_filterset_compiled_fields_case_omit() -> None:
@@ -146,9 +348,7 @@ def test_filterset_compiled_fields_case_omit() -> None:
             fields = ("username",)
 
     compiled_fields = SomeFilterSet.compiled_fields
-    assert compiled_fields == {
-        "username": SomeFilterSet.username,
-    }
+    assert list(compiled_fields) == ["username"]
 
 
 def test_filterset_compiled_fields_case_select_child() -> None:
@@ -173,7 +373,7 @@ def test_filterset_compiled_fields_case_select_child() -> None:
         class Meta:
             fields = ("created.date.gte",)
 
-    created = SomeFilterSet.created
+    created = SomeFilterSet.compiled_fields["created"]
     compiled_fields = SomeFilterSet.compiled_fields
     assert compiled_fields == {"created": created}
 
@@ -204,7 +404,7 @@ def test_filterset_compiled_fields_case_remove_child() -> None:
         class Meta:
             fields = ("created",)
 
-    created = SomeFilterSet.created
+    created = SomeFilterSet.compiled_fields["created"]
     compiled_fields = SomeFilterSet.compiled_fields
     assert compiled_fields == {"created": created}
 
@@ -229,7 +429,7 @@ def test_filterset_compiled_fields_case_remove_child_partial() -> None:
         class Meta:
             fields = ("created", "created.year")
 
-    created = SomeFilterSet.created
+    created = SomeFilterSet.compiled_fields["created"]
     compiled_fields = SomeFilterSet.compiled_fields
     assert compiled_fields == {"created": created}
 
