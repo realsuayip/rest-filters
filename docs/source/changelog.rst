@@ -17,6 +17,8 @@ New features
   available choices in error messages.
 - Added :py:class:`~rest_filters.fields.StrictBooleanField`, which only accepts
   ``true``, ``false`` or ``null`` (when ``allow_null=True``) as string values.
+- :py:class:`~rest_filters.fields.CSVField` now supports a ``dialect`` option
+  to customize CSV parsing.
 - You can now set a default value for :doc:`noop <reference/filterset-options>`
   for all filters in a FilterSet.
 - Added :py:class:`~rest_filters.filtersets.base.BaseFilterSet` for using
@@ -34,6 +36,8 @@ Changes
   now uses the new :py:class:`~rest_filters.Blank` enum.
 - Filter serializer context no longer modifies the dictionary returned by
   ``view.get_serializer_context()``.
+- Fixed error handling in :py:class:`~rest_filters.fields.CSVField`: CSV parsing
+  errors now produce validation errors instead of crashing.
 - Using DRF's ``ListField`` in a filter now emits a warning. Use
   :py:class:`~rest_filters.fields.ListField` instead.
 - Changed the implementation of some internal functions to support multiple

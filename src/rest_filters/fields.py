@@ -69,10 +69,50 @@ class CSVField(ListField):
 
     This is a subclass of ``serializers.ListField``, so you can specify
     parameters such as ``min_length``, ``max_length`` and ``allow_empty``.
+
+    Use ``dialect`` to customize CSV parsing. It accepts a registered dialect
+    name, a ``csv.Dialect`` instance, or a dialect class.
+
+    .. code-block:: python
+
+        import csv
+
+        from rest_framework import serializers
+
+        from rest_filters.fields import CSVField
+
+
+        class StrictSemicolonDialect(csv.excel):
+            delimiter = ";"
+            strict = True
+
+
+        field = CSVField(
+            child=serializers.CharField(),
+            dialect=StrictSemicolonDialect,
+        )
+        field.run_validation("hello;world")  # ["hello", "world"]
     """
 
+    default_error_messages: ClassVar[dict[str, StrOrPromise]] = {
+        "invalid": gettext_lazy("Enter a valid CSV value."),
+    }
+
+    def __init__(
+        self,
+        *,
+        dialect: str | csv.Dialect | type[csv.Dialect] = "excel",
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.dialect = dialect
+
     def to_internal_value(self, data: Any) -> list[Any]:
-        return super().to_internal_value(next(csv.reader([data])))
+        try:
+            values = next(csv.reader([data], dialect=self.dialect))
+        except csv.Error:
+            self.fail("invalid")
+        return super().to_internal_value(values)
 
 
 class VerboseChoiceField(serializers.ChoiceField):

@@ -1,3 +1,4 @@
+import csv
 import enum
 
 from rest_framework import VERSION as DRF_VERSION, serializers
@@ -30,6 +31,71 @@ def test_csv_field() -> None:
     assert c == [1]
     assert d == [1, 2, 3]
     assert e == ["hello", "world", "hello, world"]
+
+
+@pytest.mark.parametrize(
+    "dialect",
+    (
+        "excel-tab",
+        csv.excel_tab,
+        csv.excel_tab(),
+    ),
+)
+def test_csv_field_excel_tab_dialect(
+    dialect: str | csv.Dialect | type[csv.Dialect],
+) -> None:
+    field = CSVField(child=serializers.CharField(), dialect=dialect)
+
+    assert field.run_validation('"hello, world"\t"goodbye"') == [
+        "hello, world",
+        "goodbye",
+    ]
+
+
+def test_csv_field_custom_dialect() -> None:
+    class StrictSemicolonDialect(csv.excel):
+        delimiter = ";"
+        strict = True
+
+    field = CSVField(
+        child=serializers.CharField(),
+        dialect=StrictSemicolonDialect,
+    )
+
+    assert field.run_validation('"hello, world";"goodbye"') == [
+        "hello, world",
+        "goodbye",
+    ]
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        field.run_validation('"hello";"world')
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="Enter a valid CSV value.",
+            code="invalid",
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        "hello\nworld",
+        "hello\rworld",
+        "x" * (csv.field_size_limit() + 1),
+    ),
+)
+def test_csv_field_invalid_input(data: str) -> None:
+    field = CSVField(child=serializers.CharField())
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        field.run_validation(data)
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="Enter a valid CSV value.",
+            code="invalid",
+        ),
+    ]
 
 
 def test_list_field_skip() -> None:
