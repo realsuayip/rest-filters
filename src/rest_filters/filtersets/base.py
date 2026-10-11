@@ -307,14 +307,14 @@ class BaseFilterSet:
     ) -> Entry:
         children, ns = {}, []
         for name, entries in groups.items():
-            if not name.startswith(root):
-                continue
-            namespace, *sub = name.split(".")
-            if sub:
-                namespace += "." + sub[0]
-            if namespace == root:
+            if name == root:
                 children[name] = self.get_group_entry(name, entries)
                 continue
+            if not name.startswith(root + "."):
+                continue
+            sub = name.removeprefix(root + ".")
+            sub_root = sub.split(".", maxsplit=1)[0]
+            namespace = root + "." + sub_root
             ns.append(namespace)
         for child in list(dict.fromkeys(ns)):
             children[child] = self._resolve_group_namespace(child, groups)

@@ -998,6 +998,111 @@ def test_filter_queryset_case_namespace_with_single_group() -> None:
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "sibling_group",
+    (
+        "personal.ab",
+        "personal.ab.detail",
+    ),
+)
+def test_filter_queryset_namespace_excludes_similarly_named_sibling(
+    sibling_group: str,
+) -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            group="personal.a",
+        )
+        first_name = Filter(
+            serializers.CharField(),
+            group="personal.a.detail",
+        )
+        last_name = Filter(
+            serializers.CharField(),
+            group=sibling_group,
+        )
+
+        class Meta:
+            combinators = {"@personal.a": operator.or_}
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    sql, params = instance.filter_queryset().query.sql_with_params()
+
+    assert sql.split(" WHERE ", 1)[1] == (
+        '(("testapp_user"."username" = %s OR "testapp_user"."first_name" = %s) '
+        'AND "testapp_user"."last_name" = %s)'
+    )
+    assert params == ("hello", "john", "doe")
+
+
+@pytest.mark.django_db
+def test_filter_queryset_deep_namespace_combines_child_groups() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            group="personal.details.names.user",
+        )
+        first_name = Filter(
+            serializers.CharField(),
+            group="personal.details.names.first",
+        )
+        last_name = Filter(
+            serializers.CharField(),
+            group="personal.details.other",
+        )
+
+        class Meta:
+            combinators = {"@personal.details.names": operator.or_}
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    sql, params = instance.filter_queryset().query.sql_with_params()
+
+    assert sql.split(" WHERE ", 1)[1] == (
+        '(("testapp_user"."username" = %s OR "testapp_user"."first_name" = %s) '
+        'AND "testapp_user"."last_name" = %s)'
+    )
+    assert params == ("hello", "john", "doe")
+
+
+@pytest.mark.django_db
+def test_filter_queryset_deep_namespace_combines_own_group_and_child() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            group="personal.details.names",
+        )
+        first_name = Filter(
+            serializers.CharField(),
+            group="personal.details.names.first",
+        )
+        last_name = Filter(
+            serializers.CharField(),
+            group="personal.details.other",
+        )
+
+        class Meta:
+            combinators = {"@personal.details.names": operator.or_}
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username=hello&first_name=john&last_name=doe",
+    )
+    sql, params = instance.filter_queryset().query.sql_with_params()
+
+    assert sql.split(" WHERE ", 1)[1] == (
+        '(("testapp_user"."username" = %s OR "testapp_user"."first_name" = %s) '
+        'AND "testapp_user"."last_name" = %s)'
+    )
+    assert params == ("hello", "john", "doe")
+
+
+@pytest.mark.django_db
 def test_filter_queryset_case_namespace_complex() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(), group="personal")

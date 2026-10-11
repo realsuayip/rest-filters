@@ -32,6 +32,9 @@ Changes
   were not properly compiled, so subclasses could not use them for filtering.
   Subclasses can now override or remove inherited filters and select them
   with ``Meta.fields``.
+- Fixed subgroup resolution: similarly named sibling groups (e.g., ``user.a``
+  and ``user.ab``) no longer enter each other's namespaces, and combinators for
+  deeply nested namespaces are now applied correctly.
 - The existing :py:attr:`BLANK <rest_filters.conf.AppSettings.BLANK>` setting
   now uses the new :py:class:`~rest_filters.Blank` enum.
 - Filter serializer context no longer modifies the dictionary returned by
