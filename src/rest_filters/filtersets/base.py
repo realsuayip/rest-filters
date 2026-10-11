@@ -166,8 +166,8 @@ class Options:
 
 
 class BaseFilterSet:
-    options: Options
-    compiled_fields: dict[str, Filter]
+    options: ClassVar[Options]
+    compiled_fields: ClassVar[dict[str, Filter]]
 
     _declared_fields: ClassVar[dict[str, Filter]] = {}
 

@@ -111,5 +111,5 @@ class FilterSet(BaseFilterSet, Generic[_MT_co]):
         :return: Context dictionary.
         """
         context = super().get_serializer_context(param)
-        view_context = self.view.get_serializer_context()
-        return view_context | context
+        view_context = self.view.get_serializer_context()  # type: ignore[attr-defined]
+        return view_context | context  # type: ignore[no-any-return]

@@ -108,7 +108,7 @@ class VerboseChoiceField(serializers.ChoiceField):
             self.fail("invalid_choice", input=repr(str(data)), choices=choices)
 
 
-class StrictBooleanField(serializers.Field):
+class StrictBooleanField(serializers.Field):  # type: ignore[type-arg]
     """
     A boolean field that strictly requires ``true``, ``false`` or ``null``
     (when ``allow_null=True``).
@@ -149,7 +149,7 @@ class StrictBooleanField(serializers.Field):
 try:
     from drf_spectacular.utils import extend_schema_field
 
-    StrictBooleanField = extend_schema_field(bool)(StrictBooleanField)
+    StrictBooleanField = extend_schema_field(bool)(StrictBooleanField)  # type: ignore[misc]
 
 except ImportError:
     pass
