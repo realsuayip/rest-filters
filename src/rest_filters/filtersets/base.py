@@ -397,6 +397,8 @@ class BaseFilterSet:
                     fields = super().get_fields()
                     fields["new_field"] = Filter(
                         serializers.IntegerField(),
+                        param="new_field",
+                        field="new_field",
                     )
                     return fields
 
@@ -407,6 +409,16 @@ class BaseFilterSet:
             If you need to change the behavior of a public filter during
             runtime, you should instead use method filters, or field serializer
             context.
+
+        .. warning::
+
+            Filters created outside the class body need both ``param`` and
+            ``field`` to specify the query parameter and database field.
+            Unlike class declarations, where the attribute name supplies both
+            defaults, adding a filter to a dictionary does not set either name.
+
+            As usual, ``field`` can be omitted when using ``template``,
+            ``method``, or ``noop=True``.
         """
         return self._fields
 
