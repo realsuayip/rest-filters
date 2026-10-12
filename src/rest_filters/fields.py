@@ -55,6 +55,8 @@ class ListField(serializers.ListField):
                 pass
 
         if not errors:
+            if not self.allow_empty and not result:
+                self.fail("empty")
             return result
         raise serializers.ValidationError(errors)  # type: ignore[arg-type]
 

@@ -103,6 +103,23 @@ def test_list_field_skip() -> None:
     assert f1.run_validation([1, empty, 2]) == [1, 2]
 
 
+def test_list_field_disallows_empty_result_after_skipping_children() -> None:
+    field = ListField(
+        child=serializers.IntegerField(required=False),
+        allow_empty=False,
+    )
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        field.run_validation([empty, empty])
+
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="This list may not be empty.",
+            code="empty",
+        ),
+    ]
+
+
 def test_verbose_choice_field() -> None:
     f = VerboseChoiceField(choices=["hello", "world"])
     assert f.run_validation("hello") == "hello"
