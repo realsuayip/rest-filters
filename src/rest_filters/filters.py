@@ -302,12 +302,11 @@ class Filter:
     def get_serializer(self) -> AnyField:
         if self._serializer is not None:
             return self._serializer
-        source = self
-        while source._serializer is None and source.parent is not None:
-            source = source.parent
-        if source._serializer is not None:
-            # Inherited serializers need one private copy, regardless of depth.
-            return copy.deepcopy(source._serializer)
+        if self.parent is not None:
+            try:
+                return self.parent.get_serializer()
+            except ValueError:
+                pass
         raise ValueError(
             "Serializer could not be resolved for %r" % self.get_param_name()
         )
@@ -335,6 +334,8 @@ class Filter:
                 raise
             serializer = copy.deepcopy(dynamic)
         else:
+            if self._serializer is None:
+                serializer = copy.deepcopy(serializer)
             replacement = filterset.get_serializer(param, serializer)
             if replacement is None:
                 raise ValueError(

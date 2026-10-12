@@ -408,6 +408,119 @@ def test_filter_get_serializer() -> None:
     assert isinstance(f["created"].children[1].get_serializer(), serializers.DateField)
 
 
+def test_filter_child_inherits_parent_serializer_override() -> None:
+    class CustomFilter(Filter):
+        def get_serializer(self) -> AnyField:
+            return serializers.IntegerField(min_value=5)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = CustomFilter(
+            serializers.CharField(),
+            children=[
+                Filter(lookup="gte"),
+            ],
+        )
+
+        class Meta:
+            noop = True
+
+    instance = get_filterset_instance(SomeFilterSet, query="username.gte=6")
+    assert instance.get_groups()[1] == {"username.gte": 6}
+
+
+def test_filter_deep_child_inherits_parent_override_without_declaration() -> None:
+    class CustomFilter(Filter):
+        def get_serializer(self) -> AnyField:
+            return serializers.IntegerField(min_value=5)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = CustomFilter(
+            children=[
+                Filter(
+                    param="length",
+                    children=[
+                        Filter(
+                            param="range",
+                            children=[Filter(lookup="gte")],
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        class Meta:
+            noop = True
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username.length.range.gte=6",
+    )
+    assert instance.get_groups()[1] == {"username.length.range.gte": 6}
+
+
+def test_filter_deep_child_uses_parent_override_validation() -> None:
+    class CustomFilter(Filter):
+        def get_serializer(self) -> AnyField:
+            return serializers.IntegerField(min_value=5)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = CustomFilter(
+            serializers.CharField(),
+            children=[
+                Filter(
+                    param="length",
+                    children=[
+                        Filter(
+                            param="range",
+                            children=[Filter(lookup="gte")],
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        class Meta:
+            noop = True
+
+    instance = get_filterset_instance(
+        SomeFilterSet,
+        query="username.length.range.gte=4",
+    )
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+    assert ctx.value.detail == {
+        "username.length.range.gte": [
+            ErrorDetail(
+                string="Ensure this value is greater than or equal to 5.",
+                code="min_value",
+            ),
+        ],
+    }
+
+
+def test_filter_root_serializer_override_does_not_modify_shared_serializer() -> None:
+    supplied = serializers.IntegerField(default=5)
+
+    class CustomFilter(Filter):
+        def get_serializer(self) -> AnyField:
+            return supplied
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = CustomFilter()
+
+        class Meta:
+            noop = True
+
+        def get_default(self, param: str, default: Any) -> Any:
+            return 10
+
+    instance = get_filterset_instance(SomeFilterSet)
+    assert instance.get_groups()[1] == {"username": 10}
+    assert supplied.default == 5
+    assert supplied.required is False
+    assert supplied.context == {}
+
+
 def test_filter_resolve_deeply_inherited_serializer_copies_once() -> None:
     copies = []
 
