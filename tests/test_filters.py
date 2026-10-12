@@ -380,6 +380,52 @@ def test_filter_get_serializer() -> None:
     assert isinstance(f.created.children[1].get_serializer(), serializers.DateField)
 
 
+def test_filter_resolve_deeply_inherited_serializer_copies_once() -> None:
+    copies = []
+
+    class CountingCharField(serializers.CharField):
+        def __deepcopy__(self, memo: dict[int, Any]) -> AnyField:
+            copies.append(self)
+            return super().__deepcopy__(memo)
+
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            CountingCharField(),
+            children=[
+                Filter(
+                    lookup="first",
+                    children=[
+                        Filter(
+                            lookup="second",
+                            children=[
+                                Filter(lookup="third"),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    instance = get_filterset_instance(SomeFilterSet)
+    root = instance.get_fields()["username"]
+    root._filterset = instance
+    copies.clear()
+
+    parent_serializer = root.resolve_serializer()
+    assert copies == []
+
+    resolved = [parent_serializer]
+    for child in root.get_all_children():
+        copies.clear()
+        serializer = child.resolve_serializer()
+        assert len(copies) == 1
+        assert all(serializer is not previous for previous in resolved)
+        resolved.append(serializer)
+
+    resolved[-1].required = True
+    assert all(serializer.required is False for serializer in resolved[:-1])
+
+
 def test_filter_get_filterset() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
