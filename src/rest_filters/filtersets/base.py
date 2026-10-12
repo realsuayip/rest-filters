@@ -246,7 +246,11 @@ class BaseFilterSet:
     def _compile_fields(cls) -> dict[str, Filter]:
         # Copy collected declarations and apply `Meta.fields` to select usable
         # filters and children, rejecting any unknown field names.
-        fields = copy.deepcopy(cls._collect_fields())
+        fields = {}
+        for name, declaration in cls._collect_fields().items():
+            field = copy.deepcopy(declaration)
+            field.name = name
+            fields[name] = field
         if cls.options.fields is notset:
             return fields
         ret, available = {}, []

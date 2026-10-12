@@ -188,6 +188,71 @@ def test_filterset_compiled_fields_inheritance() -> None:
     assert Child.compiled_fields["username"] is not Parent.username
 
 
+def test_filterset_reusing_filter_does_not_rename_parent_or_sibling() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Renamed(Parent):
+        username = None  # type: ignore[assignment]
+        other = Parent.username
+
+    class Sibling(Parent):
+        pass
+
+    assert Renamed.compiled_fields["other"].get_param_name() == "other"
+    assert Parent.compiled_fields["username"].get_param_name() == "username"
+    assert Sibling.compiled_fields["username"].get_param_name() == "username"
+
+
+def test_filterset_reusing_filter_keeps_both_inherited_and_local_names() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+    class Child(Parent):
+        other = Parent.username
+
+    fields = Child.compiled_fields
+    assert list(fields) == ["username", "other"]
+    assert fields["username"] is not fields["other"]
+    assert fields["username"].get_param_name() == "username"
+    assert fields["other"].get_param_name() == "other"
+
+
+def test_filterset_reusing_filter_in_same_class_keeps_independent_names() -> None:
+    shared = Filter(serializers.CharField())
+
+    class SomeFilterSet(FilterSet[Any]):
+        first = shared
+        second = shared
+
+    fields = SomeFilterSet.compiled_fields
+    assert list(fields) == ["first", "second"]
+    assert fields["first"] is not fields["second"]
+    assert fields["first"].get_param_name() == "first"
+    assert fields["second"].get_param_name() == "second"
+
+
+def test_filterset_reusing_root_with_children_keeps_independent_trees() -> None:
+    class Parent(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            children=[
+                Filter(lookup="icontains"),
+            ],
+        )
+
+    class Child(Parent):
+        other = Parent.username
+
+    username = Child.compiled_fields["username"]
+    other = Child.compiled_fields["other"]
+    assert username.children[0] is not other.children[0]
+    assert username.children[0].parent is username
+    assert other.children[0].parent is other
+    assert username.children[0].get_param_name() == "username.icontains"
+    assert other.children[0].get_param_name() == "other.icontains"
+
+
 def test_filterset_compiled_fields_inherited_overrides() -> None:
     class Parent(FilterSet[Any]):
         username = Filter(serializers.CharField())

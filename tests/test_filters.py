@@ -145,6 +145,29 @@ def test_filter_child_binding() -> None:
     assert child2.parent == parent
 
 
+def test_filter_child_rebinding_to_another_parent_is_rejected() -> None:
+    child = Filter(lookup="gte")
+    parent = Filter(children=[child])
+
+    with pytest.raises(
+        ValueError,
+        match="This child filter already belongs to another parent",
+    ):
+        Filter(children=[child])
+
+    assert child.parent is parent
+    assert parent.children == [child]
+
+
+def test_filter_child_binding_to_same_parent_is_allowed() -> None:
+    child = Filter(lookup="gte")
+    parent = Filter(children=[child])
+
+    child.bind(parent)
+
+    assert child.parent is parent
+
+
 def test_filter_child_binding_param_required_for_child() -> None:
     with pytest.raises(
         ValueError,
@@ -212,11 +235,12 @@ def test_filter_repr() -> None:
     )
 
 
-def test_filter_descriptor_sets_name() -> None:
+def test_filter_compilation_sets_name() -> None:
     class SomeFilterSet(FilterSet[Any]):
         created = Filter(serializers.DateTimeField())
 
-    assert SomeFilterSet.created.name == "created"
+    assert SomeFilterSet.compiled_fields["created"].name == "created"
+    assert not hasattr(SomeFilterSet.created, "name")
 
 
 def test_filter_get_group() -> None:
@@ -276,19 +300,21 @@ def test_filter_get_db_field() -> None:
             ],
         )
 
-    assert SomeFilterSet.username.get_db_field() == "username"
-    assert SomeFilterSet.f2.get_db_field() == "created"
-    assert SomeFilterSet.f3.get_db_field() == Length("username")
+    fields = SomeFilterSet.compiled_fields
 
-    assert SomeFilterSet.modified.get_db_field() == "modified"
-    assert SomeFilterSet.modified.children[0].get_db_field() == "modified"
+    assert fields["username"].get_db_field() == "username"
+    assert fields["f2"].get_db_field() == "created"
+    assert fields["f3"].get_db_field() == Length("username")
 
-    assert SomeFilterSet.first_name.get_db_field() == "first_name"
-    assert SomeFilterSet.first_name.children[0].get_db_field() == "last_name"
-    assert SomeFilterSet.first_name.children[1].get_db_field() == Length("last_name")
+    assert fields["modified"].get_db_field() == "modified"
+    assert fields["modified"].children[0].get_db_field() == "modified"
 
-    assert SomeFilterSet.last_name.get_db_field() == Length("last_name")
-    assert SomeFilterSet.last_name.children[0].get_db_field() == Length("last_name")
+    assert fields["first_name"].get_db_field() == "first_name"
+    assert fields["first_name"].children[0].get_db_field() == "last_name"
+    assert fields["first_name"].children[1].get_db_field() == Length("last_name")
+
+    assert fields["last_name"].get_db_field() == Length("last_name")
+    assert fields["last_name"].children[0].get_db_field() == Length("last_name")
 
 
 def test_filter_get_param_name() -> None:
@@ -315,21 +341,21 @@ def test_filter_get_param_name() -> None:
             ]
         )
 
-    f = SomeFilterSet
+    f = SomeFilterSet.compiled_fields
 
-    assert f.username.get_param_name() == "username"
-    assert f.email.get_param_name() == "mail"
+    assert f["username"].get_param_name() == "username"
+    assert f["email"].get_param_name() == "mail"
 
-    assert f.modified.get_param_name() == "updated"
-    assert f.modified.children[0].get_param_name() == "updated.gte"
+    assert f["modified"].get_param_name() == "updated"
+    assert f["modified"].children[0].get_param_name() == "updated.gte"
 
-    assert f.created.get_param_name() == "created"
-    assert f.created.children[0].get_param_name() == "created.gte"
-    assert f.created.children[1].get_param_name() == "created.lte"
+    assert f["created"].get_param_name() == "created"
+    assert f["created"].children[0].get_param_name() == "created.gte"
+    assert f["created"].children[1].get_param_name() == "created.lte"
 
-    assert f.created.children[2].get_param_name() == "created.year"
-    assert f.created.children[2].children[0].get_param_name() == "created.year.gte"
-    assert f.created.children[2].children[1].get_param_name() == "created.year.lte"
+    assert f["created"].children[2].get_param_name() == "created.year"
+    assert f["created"].children[2].children[0].get_param_name() == "created.year.gte"
+    assert f["created"].children[2].children[1].get_param_name() == "created.year.lte"
 
 
 def test_filter_get_query_value() -> None:
@@ -343,16 +369,16 @@ def test_filter_get_query_value() -> None:
             ],
         )
 
-    f = SomeFilterSet
+    f = SomeFilterSet.compiled_fields
     query_dict = QueryDict("username=kate&created.gte=2024-01-01&first_name=Katie")
 
-    assert f.username.get_query_value(query_dict) == ["kate"]
+    assert f["username"].get_query_value(query_dict) == ["kate"]
 
-    assert f.name.get_query_value(query_dict) == ["Katie"]
-    assert f.surname.get_query_value(query_dict) == []
+    assert f["name"].get_query_value(query_dict) == ["Katie"]
+    assert f["surname"].get_query_value(query_dict) == []
 
-    assert f.created.get_query_value(query_dict) == []
-    assert f.created.children[0].get_query_value(query_dict) == ["2024-01-01"]
+    assert f["created"].get_query_value(query_dict) == []
+    assert f["created"].children[0].get_query_value(query_dict) == ["2024-01-01"]
 
 
 def test_filter_get_serializer() -> None:
@@ -367,17 +393,19 @@ def test_filter_get_serializer() -> None:
             ],
         )
 
-    f = SomeFilterSet
+    f = SomeFilterSet.compiled_fields
 
     with pytest.raises(
         ValueError, match="Serializer could not be resolved for 'username'"
     ):
-        f.username.get_serializer()
+        f["username"].get_serializer()
 
-    assert isinstance(f.modified.get_serializer(), serializers.DateTimeField)
-    assert isinstance(f.created.get_serializer(), serializers.DateTimeField)
-    assert isinstance(f.created.children[0].get_serializer(), serializers.DateTimeField)
-    assert isinstance(f.created.children[1].get_serializer(), serializers.DateField)
+    assert isinstance(f["modified"].get_serializer(), serializers.DateTimeField)
+    assert isinstance(f["created"].get_serializer(), serializers.DateTimeField)
+    assert isinstance(
+        f["created"].children[0].get_serializer(), serializers.DateTimeField
+    )
+    assert isinstance(f["created"].children[1].get_serializer(), serializers.DateField)
 
 
 def test_filter_resolve_deeply_inherited_serializer_copies_once() -> None:

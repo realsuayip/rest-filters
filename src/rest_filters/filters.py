@@ -85,6 +85,8 @@ class Entry:
 
 
 class Filter:
+    name: str
+
     def __init__(  # noqa: C901
         self,
         f: AnyField | None = None,
@@ -224,9 +226,6 @@ class Filter:
             args.append("%s=%r" % (name, attr))
         return "%s(%s)" % (self.__class__.__name__, ", ".join(args))
 
-    def __set_name__(self, owner: BaseFilterSet, name: str) -> None:
-        self.name = name
-
     @property
     def blank(self) -> Blank:
         if self._blank is None:
@@ -257,6 +256,11 @@ class Filter:
         return self._noop
 
     def bind(self, parent: Filter) -> None:
+        if self.parent is not None and self.parent is not parent:
+            raise ValueError(
+                "This child filter already belongs to another parent."
+                " Create a new child filter instead of reusing it."
+            )
         self.parent = parent
 
         self._param = self._param or self.lookup
