@@ -110,9 +110,10 @@ class CSVField(ListField):
         self.dialect = dialect
 
     def to_internal_value(self, data: Any) -> list[Any]:
+        reader = csv.reader([data], dialect=self.dialect)
         try:
-            values = next(csv.reader([data], dialect=self.dialect))
-        except csv.Error:
+            values = next(reader)
+        except (csv.Error, ValueError):
             self.fail("invalid")
         return super().to_internal_value(values)
 

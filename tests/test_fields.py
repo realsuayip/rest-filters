@@ -98,6 +98,28 @@ def test_csv_field_invalid_input(data: str) -> None:
     ]
 
 
+def test_csv_field_numeric_dialect_invalid_input() -> None:
+    class NumericDialect(csv.excel):
+        quoting = csv.QUOTE_NONNUMERIC
+
+    field = CSVField(
+        child=serializers.FloatField(),
+        dialect=NumericDialect,
+    )
+
+    assert field.run_validation("1,2") == [1.0, 2.0]
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        field.run_validation("1,abc")
+
+    assert ctx.value.detail == [
+        ErrorDetail(
+            string="Enter a valid CSV value.",
+            code="invalid",
+        ),
+    ]
+
+
 def test_list_field_skip() -> None:
     f1 = ListField(child=serializers.IntegerField(required=False))
     assert f1.run_validation([1, empty, 2]) == [1, 2]
