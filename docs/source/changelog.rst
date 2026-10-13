@@ -35,6 +35,9 @@ Changes
 - Fixed subgroup resolution: similarly named sibling groups (e.g., ``user.a``
   and ``user.ab``) no longer enter each other's namespaces, and combinators for
   deeply nested namespaces are now applied correctly.
+- Fixed OpenAPI schema generation for filter fields: string length limits,
+  regular expression patterns, and formats supplied by email and URL validators
+  are now included. Fields without a schema are now omitted.
 - The existing :py:attr:`BLANK <rest_filters.conf.AppSettings.BLANK>` setting
   now uses the new :py:class:`~rest_filters.Blank` enum.
 - Filter serializer context no longer modifies the dictionary returned by

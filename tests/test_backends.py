@@ -8,6 +8,8 @@ from rest_framework.generics import ListAPIView
 from rest_framework.test import APIRequestFactory
 
 import pytest
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from rest_filters import Filter, FilterBackend, FilterSet, Multi
 from rest_filters.fields import ListField, StrictBooleanField
@@ -101,13 +103,18 @@ def test_filter_backend_noop_when_filterset_not_found() -> None:
     }
 )
 def test_filter_backend_get_schema_operation_parameters() -> None:
+    @extend_schema_field(OpenApiTypes.NONE)
+    class OmittedField(serializers.CharField):
+        pass
+
     class SomeSerializer(serializers.Serializer[dict[str, Any]]):
         some_attr = serializers.CharField()
 
     class SomeFilterSet(FilterSet[User]):
         username = Filter(
             serializers.CharField(
-                min_length=2,
+                min_length=3,
+                max_length=8,
                 help_text="Provide username.",
             ),
             required=True,
@@ -152,6 +159,7 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
         is_active = Filter(StrictBooleanField())
         details = Filter(SomeSerializer())
         missing = Filter()
+        secret = Filter(OmittedField())
 
     class UserView(ListAPIView[User]):
         serializer_class = UserSerializer
@@ -176,6 +184,8 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             "schema": {
                 "description": "Provide username.",
                 "type": "string",
+                "minLength": 3,
+                "maxLength": 8,
             },
             "explode": False,
         },
@@ -190,7 +200,7 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             "name": "company.name",
             "in": "query",
             "required": False,
-            "schema": {"type": "string"},
+            "schema": {"type": "string", "minLength": 2},
             "explode": False,
         },
         {
@@ -256,6 +266,96 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             "explode": False,
         },
     ]
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+)
+def test_filter_backend_get_schema_operation_parameters_case_primitives() -> None:
+    class SomeFilterSet(FilterSet[User]):
+        text = Filter(
+            serializers.CharField(
+                min_length=2,
+                max_length=10,
+                default="abc",
+                label="Search text",
+                help_text="Text to match.",
+                allow_null=True,
+            ),
+            required=True,
+        )
+        pattern = Filter(serializers.RegexField(r"^[a-z]+$"))
+        email = Filter(serializers.EmailField(max_length=100))
+        url = Filter(serializers.URLField(max_length=200))
+        integer = Filter(serializers.IntegerField(min_value=1, max_value=100))
+        number = Filter(serializers.FloatField(min_value=0.5, max_value=10.5))
+        decimal = Filter(
+            serializers.DecimalField(
+                max_digits=5,
+                decimal_places=2,
+                coerce_to_string=False,
+            ),
+        )
+        boolean = Filter(serializers.BooleanField(default=False))
+        date = Filter(serializers.DateField())
+        datetime = Filter(serializers.DateTimeField())
+        time = Filter(serializers.TimeField())
+        uuid = Filter(serializers.UUIDField())
+        choice = Filter(serializers.ChoiceField(choices=["red", "blue"]))
+        blank_email = Filter(serializers.EmailField(allow_blank=True))
+
+    class UserView(ListAPIView[User]):
+        filterset_class = SomeFilterSet
+
+    parameters = FilterBackend().get_schema_operation_parameters(UserView())
+    schemas = {parameter["name"]: parameter["schema"] for parameter in parameters}
+    choice_schema = schemas.pop("choice")
+    assert choice_schema["type"] == "string"
+    assert choice_schema["enum"] == ["red", "blue"]
+    assert schemas == {
+        "text": {
+            "type": "string",
+            "nullable": True,
+            "default": "abc",
+            "title": "Search text",
+            "description": "Text to match.",
+            "minLength": 2,
+            "maxLength": 10,
+        },
+        "pattern": {"type": "string", "pattern": "^[a-z]+$"},
+        "email": {"type": "string", "format": "email", "maxLength": 100},
+        "url": {"type": "string", "format": "uri", "maxLength": 200},
+        "integer": {"type": "integer", "minimum": 1, "maximum": 100},
+        "number": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0.5,
+            "maximum": 10.5,
+        },
+        "decimal": {
+            "type": "number",
+            "format": "double",
+            "minimum": -1000,
+            "maximum": 1000,
+            "exclusiveMinimum": True,
+            "exclusiveMaximum": True,
+        },
+        "boolean": {"type": "boolean", "default": False},
+        "date": {"type": "string", "format": "date"},
+        "datetime": {"type": "string", "format": "date-time"},
+        "time": {"type": "string", "format": "time"},
+        "uuid": {"type": "string", "format": "uuid"},
+        "blank_email": {
+            "oneOf": [
+                {"type": "string", "format": "email"},
+                {"type": "string", "maxLength": 0},
+            ],
+        },
+    }
+    assert parameters[0]["required"] is True
+    assert all(parameter["required"] is False for parameter in parameters[1:])
 
 
 @override_settings(
@@ -332,6 +432,45 @@ def test_filter_backend_get_schema_operation_parameters_case_multi_filterset() -
             "explode": True,
         }
     ]
+
+
+@override_settings(
+    REST_FRAMEWORK={
+        "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    }
+)
+def test_filter_backend_serializer_schema_context_is_isolated_between_views() -> None:
+    class ContextSerializer(serializers.Serializer[dict[str, Any]]):
+        def get_fields(self) -> dict[str, Any]:
+            return {
+                self.context["view"].field_name: serializers.CharField(),
+            }
+
+    class SomeFilterSet(FilterSet[User]):
+        details = Filter(ContextSerializer())
+
+    class FirstView(ListAPIView[User]):
+        serializer_class = UserSerializer
+        queryset = User.objects.none()
+        filterset_class = SomeFilterSet
+        field_name = "first"
+
+    class SecondView(FirstView):
+        field_name = "second"
+
+    factory = APIRequestFactory()
+    first_view = FirstView(format_kwarg=None)
+    first_view.request = factory.get("/first/")
+    second_view = SecondView(format_kwarg=None)
+    second_view.request = factory.get("/second/")
+
+    first = FilterBackend().get_schema_operation_parameters(first_view)
+    second = FilterBackend().get_schema_operation_parameters(second_view)
+
+    assert list(first[0]["schema"]["properties"]) == ["first"]
+    assert list(second[0]["schema"]["properties"]) == ["second"]
+    declared = SomeFilterSet._compiled_fields["details"].get_serializer()
+    assert declared.context == {}
 
 
 def test_filter_backend_get_schema_operation_parameters_case_missing_filterset() -> (

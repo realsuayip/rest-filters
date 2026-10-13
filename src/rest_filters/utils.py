@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import enum
 import warnings
 from typing import TYPE_CHECKING, Any, Final, TypeAlias, TypeVar
@@ -87,9 +88,14 @@ def _filter_to_schema(
         )
         return None
     if isinstance(field, serializers.Serializer):
+        field = copy.deepcopy(field)
         schema = view.schema._map_serializer(field, "request")  # type: ignore[union-attr]
     else:
         schema = view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr]
+        if schema is not None:
+            view.schema._insert_field_validators(field, schema)  # type: ignore[union-attr]
+    if schema is None:
+        return None
     multi = f._multi or filterset._options.multi
     return {
         "name": f.get_param_name(),
