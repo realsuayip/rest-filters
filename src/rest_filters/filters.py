@@ -261,14 +261,14 @@ class Filter:
                 "This child filter already belongs to another parent."
                 " Create a new child filter instead of reusing it."
             )
-        self.parent = parent
-
-        self._param = self._param or self.lookup
-        if not self._param:
+        param = self._param or self.lookup
+        if not param:
             raise ValueError(
                 "Either 'param' or 'lookup' parameter needs to"
                 " be specified for child filters"
             )
+        self._param = param
+        self.parent = parent
 
     def get_group(self) -> str:
         if self._group is not None:
