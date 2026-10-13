@@ -239,7 +239,7 @@ def test_filter_compilation_sets_name() -> None:
     class SomeFilterSet(FilterSet[Any]):
         created = Filter(serializers.DateTimeField())
 
-    assert SomeFilterSet.compiled_fields["created"].name == "created"
+    assert SomeFilterSet._compiled_fields["created"].name == "created"
     assert not hasattr(SomeFilterSet.created, "name")
 
 
@@ -300,7 +300,7 @@ def test_filter_get_db_field() -> None:
             ],
         )
 
-    fields = SomeFilterSet.compiled_fields
+    fields = SomeFilterSet._compiled_fields
 
     assert fields["username"].get_db_field() == "username"
     assert fields["f2"].get_db_field() == "created"
@@ -341,7 +341,7 @@ def test_filter_get_param_name() -> None:
             ]
         )
 
-    f = SomeFilterSet.compiled_fields
+    f = SomeFilterSet._compiled_fields
 
     assert f["username"].get_param_name() == "username"
     assert f["email"].get_param_name() == "mail"
@@ -369,7 +369,7 @@ def test_filter_get_query_value() -> None:
             ],
         )
 
-    f = SomeFilterSet.compiled_fields
+    f = SomeFilterSet._compiled_fields
     query_dict = QueryDict("username=kate&created.gte=2024-01-01&first_name=Katie")
 
     assert f["username"].get_query_value(query_dict) == ["kate"]
@@ -393,7 +393,7 @@ def test_filter_get_serializer() -> None:
             ],
         )
 
-    f = SomeFilterSet.compiled_fields
+    f = SomeFilterSet._compiled_fields
 
     with pytest.raises(
         ValueError, match="Serializer could not be resolved for 'username'"
@@ -525,7 +525,7 @@ def test_filter_resolve_deeply_inherited_serializer_copies_once() -> None:
     copies = []
 
     class CountingCharField(serializers.CharField):
-        def __deepcopy__(self, memo: dict[int, Any]) -> AnyField:
+        def __deepcopy__(self, memo: dict[int, Any]) -> "CountingCharField":
             copies.append(self)
             return super().__deepcopy__(memo)
 
@@ -594,10 +594,10 @@ def test_filter_get_filterset() -> None:
     assert fields["created"].children[0].get_filterset() == filterset
 
     with pytest.raises(AttributeError, match="Could not resolve FilterSet"):
-        SomeFilterSet.compiled_fields["username"].get_filterset()
+        SomeFilterSet._compiled_fields["username"].get_filterset()
 
     with pytest.raises(AttributeError, match="Could not resolve FilterSet"):
-        filterset.compiled_fields["username"].get_filterset()
+        filterset._compiled_fields["username"].get_filterset()
 
 
 def test_filter_resolve_serializer() -> None:
@@ -621,7 +621,7 @@ def test_filter_resolve_serializer() -> None:
 
     assert resolved1 is not resolved2
     assert not f.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
+    assert not SomeFilterSet._compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
     assert resolved1 is field._serializer
     assert resolved2 is not field._serializer
@@ -724,7 +724,7 @@ def test_filter_resolve_serializer_replacement() -> None:
 
     assert not current.context
     assert not replacement.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
+    assert not SomeFilterSet._compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_resolve_serializer_replacement_attr_changed() -> None:
@@ -746,7 +746,7 @@ def test_filter_resolve_serializer_replacement_attr_changed() -> None:
     assert resolved.context
     assert resolved.max_length == 25
 
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
+    assert not SomeFilterSet._compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
@@ -766,7 +766,7 @@ def test_filter_resolve_serializer_replacement_failed_to_resolve() -> None:
     ):
         filterset.filter_queryset()
     assert not f.context
-    assert not SomeFilterSet.compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
+    assert not SomeFilterSet._compiled_fields["username"]._serializer.context  # type: ignore[union-attr]
 
 
 def test_filter_run_validation() -> None:

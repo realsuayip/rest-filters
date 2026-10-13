@@ -188,7 +188,7 @@ def test_known_parameters_default() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
 
-    assert SomeFilterSet.options.known_parameters == [
+    assert SomeFilterSet._options.known_parameters == [
         "page",
         "page_size",
         "cursor",
@@ -209,7 +209,7 @@ def test_known_parameters_default_drf_dynamic_override() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
 
-    assert SomeFilterSet.options.known_parameters == [
+    assert SomeFilterSet._options.known_parameters == [
         "page",
         "page_size",
         "cursor",
@@ -223,7 +223,7 @@ def test_known_parameters_custom() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
 
-    assert SomeFilterSet.options.known_parameters == ["hello", "world"]
+    assert SomeFilterSet._options.known_parameters == ["hello", "world"]
 
 
 @override_settings(REST_FILTERS={"KNOWN_PARAMETERS": []})
@@ -231,7 +231,7 @@ def test_known_parameters_custom_empty() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField())
 
-    assert SomeFilterSet.options.known_parameters == []
+    assert SomeFilterSet._options.known_parameters == []
 
 
 def test_default_group_default() -> None:
