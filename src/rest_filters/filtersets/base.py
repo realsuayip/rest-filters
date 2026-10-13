@@ -166,32 +166,27 @@ class Options:
 
 
 class BaseFilterSet:
-    options: ClassVar[Options]
-    compiled_fields: ClassVar[dict[str, Filter]]
-
+    _options: ClassVar[Options]
+    _compiled_fields: ClassVar[dict[str, Filter]]
     _declared_fields: ClassVar[dict[str, Filter]] = {}
 
     def __init__(self) -> None:
-        self._fields = copy.deepcopy(self.compiled_fields)
-        self._constraints = copy.deepcopy(self.options.constraints)
+        self._fields = copy.deepcopy(self._compiled_fields)
+        self._constraints = copy.deepcopy(self._options.constraints)
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         # https://github.com/python/cpython/issues/114326
         super().__init_subclass__()
-
-        cls._declared_fields = {
-            name: field
-            for name, field in vars(cls).items()
-            if isinstance(field, Filter)
-        }
 
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in OPTION_NAMES}
             options = Options(**opts)
         else:
             options = Options()
-        cls.options = options
-        cls.compiled_fields = cls._compile_fields()
+
+        cls._options = options
+        cls._declared_fields = cls._collect_fields()
+        cls._compiled_fields = cls._compile_fields()
 
     @classmethod
     def _visit(
@@ -200,7 +195,7 @@ class BaseFilterSet:
         param = f.get_param_name()
         keep = param in fields
         if not f.children:
-            if keep:
+            if keep and not f.namespace:
                 return [param], f
             return [param], None
         visits = [cls._visit(fields, child) for child in f.children]
@@ -209,37 +204,33 @@ class BaseFilterSet:
             list(itertools.chain.from_iterable(p)),
             [child for child in c if child is not None],
         )
+        params.append(param)
         if children:
             f.children = children
             if not keep:
                 f.namespace = True
-        elif keep:
+        elif keep and not f.namespace:
             f.children = []
         else:
             return params, None
-        params.append(param)
         return params, f
 
     @classmethod
     def _collect_fields(cls) -> dict[str, Filter]:
-        # Collect inherited and local filter declarations in order, resolving
-        # overrides and removals.
+        # Ancestors already hold their merged declarations, as in Django forms.
         fields: dict[str, Filter] = {}
-        for base in cls.__bases__:
-            # Direct bases are visited left to right. Each recursively collects
-            # its ancestors; recursion stops at BaseFilterSet, whose base is
-            # object.
-            if issubclass(base, BaseFilterSet):
-                for name, field in base._collect_fields().items():
-                    # Any local attribute suppresses the inherited filter,
-                    # including non-filter values such as `attr = None`.
-                    # Otherwise, the first base providing this name wins.
-                    if name not in vars(cls) and name not in fields:
-                        fields[name] = field
-        # Append local filters in declaration order, restoring local overrides.
-        # Non-filter overrides stay excluded. For A(x, y, z) -> B(x, c, f),
-        # the resulting order is y, z, x, c, f.
-        fields.update(cls._declared_fields)
+        for base in reversed(cls.__mro__):
+            if base is cls:
+                fields.update(
+                    (name, field)
+                    for name, field in vars(cls).items()
+                    if isinstance(field, Filter)
+                )
+            elif issubclass(base, BaseFilterSet):
+                fields.update(base._declared_fields)
+            for name, value in vars(base).items():
+                if value is None:
+                    fields.pop(name, None)
         return fields
 
     @classmethod
@@ -247,19 +238,19 @@ class BaseFilterSet:
         # Copy collected declarations and apply `Meta.fields` to select usable
         # filters and children, rejecting any unknown field names.
         fields = {}
-        for name, declaration in cls._collect_fields().items():
+        for name, declaration in cls._declared_fields.items():
             field = copy.deepcopy(declaration)
             field.name = name
             fields[name] = field
-        if cls.options.fields is notset:
+        if cls._options.fields is notset:
             return fields
         ret, available = {}, []
         for name, field in fields.items():
-            params, f = cls._visit(cls.options.fields, field)
+            params, f = cls._visit(cls._options.fields, field)
             available.extend(params)
             if f is not None:
                 ret[name] = f
-        unknown = [field for field in cls.options.fields if field not in available]
+        unknown = [field for field in cls._options.fields if field not in available]
         if unknown:
             raise ValueError(
                 "The following fields are not valid: %(fields)s,"
@@ -294,7 +285,7 @@ class BaseFilterSet:
                 errordict[param] = error
                 valuedict[param] = empty
         merge_errors(errordict, self.handle_constraints(valuedict))
-        if self.options.handle_unknown_parameters:
+        if self._options.handle_unknown_parameters:
             unknown = [field for field in params if field not in known_parameters]
             if unknown:
                 merge_errors(
@@ -336,7 +327,7 @@ class BaseFilterSet:
         :return: A callable that acts like a logical operator,
          such as ``operator.or_`` and ``operator.and_``
         """
-        return self.options.combinators.get(group, operator.and_)  # type: ignore[no-any-return]
+        return self._options.combinators.get(group, operator.and_)  # type: ignore[no-any-return]
 
     def get_group_entry(self, group: str, entries: Entries) -> Entry:
         """
@@ -382,7 +373,7 @@ class BaseFilterSet:
         """
         Override this method extend or replace known parameters dynamically.
         """
-        return self.options.known_parameters
+        return self._options.known_parameters
 
     def get_fields(self) -> dict[str, Filter]:
         """

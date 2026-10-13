@@ -90,7 +90,7 @@ def _filter_to_schema(
         schema = view.schema._map_serializer(field, "request")  # type: ignore[union-attr]
     else:
         schema = view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr]
-    multi = f._multi or filterset.options.multi
+    multi = f._multi or filterset._options.multi
     return {
         "name": f.get_param_name(),
         "in": "query",
@@ -106,7 +106,7 @@ def _get_filterset_schema(
     view: APIView,
 ) -> list[dict[str, Any]]:
     ret = []
-    for field in filterset.compiled_fields.values():
+    for field in filterset._compiled_fields.values():
         for f in [field, *field.get_all_children()]:
             if f.namespace:
                 continue

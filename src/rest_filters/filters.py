@@ -230,14 +230,14 @@ class Filter:
     def blank(self) -> Blank:
         if self._blank is None:
             filterset = self.get_filterset()
-            return filterset.options.blank
+            return filterset._options.blank
         return self._blank
 
     @property
     def multi(self) -> Multi:
         if self._multi is None:
             filterset = self.get_filterset()
-            return filterset.options.multi
+            return filterset._options.multi
         return self._multi
 
     @property
@@ -252,7 +252,7 @@ class Filter:
     def noop(self) -> bool:
         if self._noop is None:
             filterset = self.get_filterset()
-            return filterset.options.noop
+            return filterset._options.noop
         return self._noop
 
     def bind(self, parent: Filter) -> None:
@@ -276,7 +276,7 @@ class Filter:
         if self.parent is not None:
             return self.parent.get_group()
         filterset = self.get_filterset()
-        return filterset.options.default_group
+        return filterset._options.default_group
 
     def get_db_field(self) -> str | BaseExpression | Combinable:
         if self.parent and self._field is None:
