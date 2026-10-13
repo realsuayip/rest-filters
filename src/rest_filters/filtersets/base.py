@@ -176,7 +176,7 @@ class BaseFilterSet:
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         # https://github.com/python/cpython/issues/114326
-        super().__init_subclass__()
+        super().__init_subclass__(**kwargs)
 
         if meta := getattr(cls, "Meta", None):
             opts = {field: getattr(meta, field, notset) for field in OPTION_NAMES}
