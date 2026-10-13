@@ -158,7 +158,7 @@ should also get some error messages if something goes wrong, for example:
             "This field is required."
         ],
         "usrname": [
-            "This query parameter does not exist. Did you mean \"username\"?"
+            "This query parameter does not exist. Did you mean 'username'?"
         ]
     }
 
@@ -263,7 +263,7 @@ fields are used at the same time:
 
      {
          "non_field_errors": [
-             "The following fields are mutually exclusive, you may only provide one of them: \"company.id\", \"company.name\""
+             "The following fields are mutually exclusive, you may only provide one of them: 'company.id', 'company.name'"
          ]
      }
 

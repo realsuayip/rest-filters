@@ -121,8 +121,9 @@ For example:
                         "The date range cannot be greater than 90 days."
                     )
 
-This example defines two fields for filtering by range, requires them both to
-be present and enforces a 90-day window for the filter.
+This example defines two fields for filtering by range. Both may be omitted,
+but supplying either requires the other. When provided, the range cannot exceed
+90 days.
 
 While creating custom constraints, we need to keep some things in mind:
 

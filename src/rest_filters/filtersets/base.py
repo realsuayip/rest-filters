@@ -75,9 +75,9 @@ class Options:
     def __init__(
         self,
         *,
-        fields: list[str] | tuple[str] | NotSet = notset,
-        known_parameters: list[str] | tuple[str] | NotSet = notset,
-        extend_known_parameters: list[str] | tuple[str] | NotSet = notset,
+        fields: list[str] | tuple[str, ...] | NotSet = notset,
+        known_parameters: list[str] | tuple[str, ...] | NotSet = notset,
+        extend_known_parameters: list[str] | tuple[str, ...] | NotSet = notset,
         handle_unknown_parameters: bool | NotSet = notset,
         constraints: Sequence[Constraint] | NotSet = notset,
         combinators: dict[str, Any] | NotSet = notset,

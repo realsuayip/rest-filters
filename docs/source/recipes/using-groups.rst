@@ -41,8 +41,8 @@ have to write:
     Scene.objects.filter(geometries__color="red", geometries__shape="triangle")
 
 In this case, chaining each of the conditions would not fulfill our request
-since doing so would return scene objects that contain either "red geometries"
-or "triangles of any color".
+since doing so would return scene objects that contain both "red geometries"
+and "triangles of any color".
 
 Depending on your context, you might or might not want to chain queries. By
 specifying groups, you opt out from chaining QuerySets (the default behavior).

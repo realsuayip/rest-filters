@@ -93,7 +93,7 @@ return an ``Entry`` in following cases:
 
 Returning ``None`` will not resolve a query expression, so no filtering will be
 done, mimicking the ``noop=True`` behavior. Methods are **not called** when the
-relevant query parameter is missing.
+relevant query parameter is missing (and no default value is supplied).
 
 .. note::
 

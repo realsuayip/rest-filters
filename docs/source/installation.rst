@@ -9,7 +9,7 @@ You can install rest-filters via your favorite package manager:
 
 https://pypi.org/project/rest-filters/
 
-rest-filters supports Django 4.2 and Django 5.2, with REST framework 3.14 and
-above.
+rest-filters supports Django 4.2, 5.2, 6.0, and 6.1, with REST framework 3.14 and
+above. Python 3.10 or newer is required.
 
 rest-filters uses semantic versioning: https://semver.org
