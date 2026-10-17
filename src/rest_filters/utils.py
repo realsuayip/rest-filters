@@ -70,6 +70,27 @@ def merge_errors(
             source.setdefault(key, detail)
 
 
+def _get_inline_serializer_schema(
+    field: serializers.Serializer[Any],
+    *,
+    view: APIView,
+) -> dict[str, Any] | None:
+    from drf_spectacular.drainage import has_override  # noqa: PLC0415
+    from drf_spectacular.extensions import (  # noqa: PLC0415
+        OpenApiSerializerFieldExtension,
+    )
+    from drf_spectacular.plumbing import append_meta  # noqa: PLC0415
+
+    field = copy.deepcopy(field)
+    if has_override(field, "field") or OpenApiSerializerFieldExtension.get_match(field):
+        return view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr,no-any-return]
+    schema = view.schema._map_serializer(field, "request")  # type: ignore[union-attr]
+    if schema is not None:
+        meta = view.schema._get_serializer_field_meta(field, "request")  # type: ignore[union-attr]
+        schema = append_meta(schema, meta)
+    return schema  # type: ignore[no-any-return]
+
+
 def _filter_to_schema(
     f: Filter,
     /,
@@ -88,14 +109,12 @@ def _filter_to_schema(
         )
         return None
     if isinstance(field, serializers.Serializer):
-        field = copy.deepcopy(field)
-        schema = view.schema._map_serializer(field, "request")  # type: ignore[union-attr]
+        schema = _get_inline_serializer_schema(field, view=view)
     else:
         schema = view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr]
-        if schema is not None:
-            view.schema._insert_field_validators(field, schema)  # type: ignore[union-attr]
     if schema is None:
         return None
+    view.schema._insert_field_validators(field, schema)  # type: ignore[union-attr]
     multi = f._multi or filterset._options.multi
     return {
         "name": f.get_param_name(),

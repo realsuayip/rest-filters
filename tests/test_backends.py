@@ -110,6 +110,14 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
     class SomeSerializer(serializers.Serializer[dict[str, Any]]):
         some_attr = serializers.CharField()
 
+    @extend_schema_field(OpenApiTypes.NONE)
+    class OmittedSerializer(serializers.Serializer[dict[str, Any]]):
+        some_attr = serializers.CharField()
+
+    @extend_schema_field(OpenApiTypes.STR)
+    class StringSerializer(serializers.Serializer[dict[str, Any]]):
+        some_attr = serializers.CharField()
+
     class SomeFilterSet(FilterSet[User]):
         username = Filter(
             serializers.CharField(
@@ -157,9 +165,18 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
             ],
         )
         is_active = Filter(StrictBooleanField())
-        details = Filter(SomeSerializer())
+        details = Filter(
+            SomeSerializer(
+                help_text="Details to match.",
+                label="Details filter",
+                allow_null=True,
+                default={"some_attr": "hello"},
+            ),
+        )
         missing = Filter()
         secret = Filter(OmittedField())
+        omitted_details = Filter(OmittedSerializer())
+        string_details = Filter(StringSerializer(help_text="Encoded details."))
 
     class UserView(ListAPIView[User]):
         serializer_class = UserSerializer
@@ -262,7 +279,18 @@ def test_filter_backend_get_schema_operation_parameters() -> None:
                 "type": "object",
                 "properties": {"some_attr": {"type": "string"}},
                 "required": ["some_attr"],
+                "description": "Details to match.",
+                "title": "Details filter",
+                "nullable": True,
+                "default": {"some_attr": "hello"},
             },
+            "explode": False,
+        },
+        {
+            "name": "string_details",
+            "in": "query",
+            "required": False,
+            "schema": {"type": "string", "description": "Encoded details."},
             "explode": False,
         },
     ]
