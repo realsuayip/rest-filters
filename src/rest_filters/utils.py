@@ -71,7 +71,7 @@ def merge_errors(
 
 
 def _get_inline_serializer_schema(
-    field: serializers.Serializer[Any],
+    field: serializers.BaseSerializer[Any],
     *,
     view: APIView,
 ) -> dict[str, Any] | None:
@@ -108,7 +108,7 @@ def _filter_to_schema(
             stacklevel=1,
         )
         return None
-    if isinstance(field, serializers.Serializer):
+    if isinstance(field, serializers.BaseSerializer):
         schema = _get_inline_serializer_schema(field, view=view)
     else:
         schema = view.schema._map_serializer_field(field, "request")  # type: ignore[union-attr]
