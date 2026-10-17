@@ -14,7 +14,7 @@ from rest_framework.test import APIRequestFactory
 import pytest
 
 from rest_filters import Blank, Filter, FilterSet, Multi
-from rest_filters.fields import ListField
+from rest_filters.fields import CSVField, ListField
 from rest_filters.filters import Entry
 from rest_filters.utils import AnyField, notset
 from tests.testapp.views import UserView
@@ -827,7 +827,7 @@ def test_filter_parse_value_case_blank_keep() -> None:
     username.run_validation.assert_called_once_with("", username._serializer)
 
 
-def test_filter_parse_value_initial_string_parsing() -> None:
+def test_filter_parse_value_preserves_raw_input() -> None:
     class SomeFilterSet(FilterSet[Any]):
         created = Filter(serializers.DateTimeField())
 
@@ -838,13 +838,72 @@ def test_filter_parse_value_initial_string_parsing() -> None:
     created.run_validation = MagicMock()  # type: ignore[method-assign]
 
     created.parse_value([" 2017-01-01\t\n\r"])
-    created.run_validation.assert_called_once_with("2017-01-01", created._serializer)
+    created.run_validation.assert_called_once_with(
+        " 2017-01-01\t\n\r",
+        created._serializer,
+    )
 
-    with pytest.raises(
-        serializers.ValidationError,
-        match="Null characters are not allowed",
-    ):
-        created.parse_value(["2017-01-01\0"])
+    created.run_validation.reset_mock()
+    created.parse_value(["2017-01-01\0"])
+    created.run_validation.assert_called_once_with(
+        "2017-01-01\0",
+        created._serializer,
+    )
+
+
+def test_filter_preserves_whitespace_for_untrimmed_strings() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField(trim_whitespace=False))
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=%20hello%20",
+    )
+    groups, _ = filterset.get_groups()
+    assert groups["chain"]["username"].value == " hello "
+
+
+def test_filter_preserves_whitespace_in_choices() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.ChoiceField(choices=[" hello "]))
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=%20hello%20",
+    )
+    groups, _ = filterset.get_groups()
+    assert groups["chain"]["username"].value == " hello "
+
+
+def test_filter_preserves_whitespace_in_csv_items() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            CSVField(child=serializers.CharField(trim_whitespace=False)),
+            lookup="in",
+        )
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=%20alice%20,%20bob%20",
+    )
+    groups, _ = filterset.get_groups()
+    assert groups["chain"]["username"].value == [" alice ", " bob "]
+
+
+def test_multi_allow_preserves_whitespace_in_items() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            ListField(child=serializers.CharField(trim_whitespace=False)),
+            multi=Multi.ALLOW,
+            lookup="in",
+        )
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=%20alice%20&username=%20%20",
+    )
+    groups, _ = filterset.get_groups()
+    assert groups["chain"]["username"].value == [" alice ", "  "]
 
 
 def test_filter_parse_value_case_bad_multi() -> None:

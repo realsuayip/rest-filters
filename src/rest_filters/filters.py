@@ -19,8 +19,6 @@ from rest_filters.utils import AnyField, fill_q_template
 if TYPE_CHECKING:
     from django.http.request import QueryDict
 
-    from rest_framework.fields import _Empty
-
     from rest_filters.filtersets.base import BaseFilterSet
     from rest_filters.utils import ParsedValue
 
@@ -28,9 +26,6 @@ __all__ = [
     "Entry",
     "Filter",
 ]
-
-
-normalizer = serializers.CharField(allow_blank=True)
 
 
 class Entry:
@@ -357,12 +352,6 @@ class Filter:
         filterset, param = self.get_filterset(), self.get_param_name()
         return filterset.run_validation(value, serializer, param)
 
-    def normalize_value(self, value: str) -> str | _Empty:
-        value = normalizer.run_validation(value)
-        if value == "" and self.blank == Blank.OMIT:
-            return empty
-        return value
-
     def parse_value(self, value: list[str]) -> Any:
         size = len(value)
         if not size:
@@ -375,13 +364,18 @@ class Filter:
             )
         elif self.multi in (Multi.FIRST, Multi.LAST, Multi.DISALLOW):
             index = -1 if self.multi == Multi.LAST else 0
-            p = self.normalize_value(value[index])
+            p = value[index]
         elif self.multi == Multi.ALLOW:
-            p = [self.normalize_value(v) for v in value]
-            if all(v is empty for v in p):
-                p = empty
+            p = value  # type: ignore[assignment]
         else:
             raise ValueError(f"{self.multi!r} is not a valid multi choice")
+        if self.blank == Blank.OMIT:
+            if isinstance(p, list):
+                p = [empty if v == "" else v for v in p]
+                if all(v is empty for v in p):
+                    p = empty
+            elif p == "":
+                p = empty
         serializer = self.resolve_serializer()
         return self.run_validation(p, serializer)
 

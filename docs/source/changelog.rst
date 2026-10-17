@@ -50,13 +50,15 @@ Changes
   values: ``Filter.get_query_value`` and ``Filter.parse_value``.
 - Improved type annotations.
 
-This release contains a breaking change:
+This release contains breaking changes:
 
 - Multiple values for the same query parameter are now disallowed by default.
   Previously, only the last value was used. Set ``multi`` to
   :py:attr:`~rest_filters.Multi.LAST` to keep the previous behavior. This
   setting is also available in :doc:`FilterSet.Meta <reference/filterset-options>`
   and globally with :py:attr:`MULTI <rest_filters.conf.AppSettings.MULTI>`.
+- Query parameter values are no longer normalized. Whitespace trimming now
+  depend on the configured serializer field.
 
 `0.8.0 diff <https://github.com/realsuayip/rest-filters/compare/0.7.1...HEAD>`__.
 
