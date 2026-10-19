@@ -4,13 +4,14 @@ import copy
 import warnings
 from typing import TYPE_CHECKING, Any
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from django.db.models.expressions import BaseExpression, Combinable
 from django.utils.translation import gettext
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import SkipField, empty
+from rest_framework.fields import SkipField, empty, get_error_detail
 
 from rest_filters.conf import Blank, Multi
 from rest_filters.fields import ListField
@@ -428,7 +429,8 @@ class Filter:
     def resolve(
         self, query_dict: QueryDict
     ) -> tuple[dict[str, Entry | None], dict[str, Any]]:
-        entries, errors = {}, {}
+        entries: dict[str, Entry | None] = {}
+        errors: dict[str, Any] = {}
         for instance in [self, *self.get_all_children()]:
             if instance.namespace:
                 continue
@@ -437,6 +439,8 @@ class Filter:
                 entry = instance.resolve_entry(query_dict)
             except ValidationError as err:
                 errors[param] = err.detail
+            except DjangoValidationError as err:
+                errors[param] = get_error_detail(err)
             else:
                 entries[param] = entry
         return entries, errors

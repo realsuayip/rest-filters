@@ -44,6 +44,7 @@ Changes
   ``view.get_serializer_context()``.
 - Fixed error handling in :py:class:`~rest_filters.fields.CSVField`: CSV parsing
   errors now produce validation errors instead of crashing.
+- Fields that raise ``django.core.exceptions.ValidationError`` are now handled properly.
 - Using DRF's ``ListField`` in a filter now emits a warning. Use
   :py:class:`~rest_filters.fields.ListField` instead.
 - Changed the implementation of some internal functions to support multiple

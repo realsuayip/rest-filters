@@ -1,10 +1,12 @@
 import datetime
-from typing import Any, TypeVar, cast
+from typing import Any, ClassVar, TypeVar, cast
 from unittest.mock import MagicMock, call
 
+from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.http import QueryDict
+from django.test.utils import isolate_apps
 
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -1546,6 +1548,39 @@ def test_filter_resolve() -> None:
     assert errors == {
         "created.gte": [
             ErrorDetail(string="This field is required.", code="required"),
+        ],
+    }
+
+
+@isolate_apps("tests.testapp")
+def test_filter_primary_key_related_field_invalid_uuid() -> None:
+    class Company(models.Model):
+        id = models.UUIDField(primary_key=True)
+        objects: ClassVar[models.Manager["Company"]] = models.Manager()
+
+        class Meta:
+            app_label = "testapp"
+
+        def __str__(self) -> str:
+            return str(self.id)
+
+    class SomeFilterSet(FilterSet[Any]):
+        company = Filter(
+            serializers.PrimaryKeyRelatedField(queryset=Company.objects.all()),
+            field="following_companies",
+        )
+
+    filterset = get_filterset_instance(SomeFilterSet, query="company=not-a-uuid")
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        filterset.get_groups()
+
+    assert ctx.value.detail == {
+        "company": [
+            ErrorDetail(
+                string="“not-a-uuid” is not a valid UUID.",
+                code="invalid",
+            ),
         ],
     }
 
