@@ -9,6 +9,16 @@ You can install rest-filters via your favorite package manager:
 
 https://pypi.org/project/rest-filters/
 
+To enable the bundled translations, add ``rest_filters`` to your
+``INSTALLED_APPS`` setting:
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        # ...
+        "rest_filters",
+    ]
+
 rest-filters supports Django 4.2, 5.2, 6.0, and 6.1, with REST framework 3.14 and
 above. Python 3.10 or newer is required.
 
