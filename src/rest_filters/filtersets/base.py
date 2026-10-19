@@ -8,10 +8,11 @@ from collections import defaultdict
 from difflib import get_close_matches
 from typing import TYPE_CHECKING, Any, ClassVar, TypeAlias, final
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext
 
 from rest_framework import serializers
-from rest_framework.fields import empty
+from rest_framework.fields import empty, get_error_detail
 from rest_framework.settings import api_settings
 
 from rest_filters.conf import Blank, app_settings
@@ -477,11 +478,15 @@ class BaseFilterSet:
                 constraint.check(valuedict)
             except serializers.ValidationError as err:
                 detail = err.detail
-                if not isinstance(detail, dict):
-                    detail = {api_settings.NON_FIELD_ERRORS_KEY: detail}
-                merge_errors(errors, detail)
+            except DjangoValidationError as err:
+                detail = get_error_detail(err)  # type: ignore[assignment]
+            else:
+                continue
             finally:
                 constraint.filterset = None
+            if not isinstance(detail, dict):
+                detail = {api_settings.NON_FIELD_ERRORS_KEY: detail}
+            merge_errors(errors, detail)
         return errors
 
     def handle_unknown_parameters(

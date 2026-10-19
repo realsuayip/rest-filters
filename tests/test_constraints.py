@@ -2,7 +2,11 @@ import datetime
 import zoneinfo
 from typing import Any
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import MaxValueValidator
+
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.fields import empty
 
 import pytest
@@ -138,6 +142,134 @@ def test_method_constraint() -> None:
     errors2 = instance.handle_constraints({"age": 11})
     assert errors1 == {"non_field_errors": ["Age must be greater than 10"]}
     assert errors2 == {}
+
+
+def test_method_constraint_handles_django_validation_error() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        age = Filter(serializers.IntegerField())
+
+        class Meta:
+            constraints = [
+                MethodConstraint(method="check_age"),
+            ]
+
+        def check_age(self, values: dict[str, Any]) -> None:
+            MaxValueValidator(90)(values["age"])
+
+    instance = get_filterset_instance(SomeFilterSet, query="age=100")
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+
+    assert ctx.value.detail == {
+        "non_field_errors": [
+            ErrorDetail(
+                string="Ensure this value is less than or equal to 90.",
+                code="max_value",
+            ),
+        ],
+    }
+
+
+def test_custom_constraint_handles_django_validation_error() -> None:
+    class AgeConstraint(Constraint):
+        def check(self, values: dict[str, Any]) -> None:
+            if values["age"] > 90:
+                raise DjangoValidationError(
+                    {
+                        "age": DjangoValidationError(
+                            "Age must not exceed 90.",
+                            code="age_limit",
+                        ),
+                    },
+                )
+
+    class SomeFilterSet(FilterSet[Any]):
+        age = Filter(serializers.IntegerField())
+
+        class Meta:
+            constraints = [AgeConstraint()]
+
+    instance = get_filterset_instance(SomeFilterSet, query="age=100")
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+
+    assert ctx.value.detail == {
+        "age": [
+            ErrorDetail(
+                string="Age must not exceed 90.",
+                code="age_limit",
+            ),
+        ],
+    }
+
+
+def test_custom_constraint_wraps_django_error_list() -> None:
+    class AgeConstraint(Constraint):
+        def check(self, values: dict[str, Any]) -> None:
+            if values["age"] > 90:
+                raise DjangoValidationError(
+                    [
+                        DjangoValidationError(
+                            "Age must not exceed 90.",
+                            code="age_limit",
+                        ),
+                        DjangoValidationError(
+                            "Choose a lower age.",
+                            code="lower_age",
+                        ),
+                    ],
+                )
+
+    class SomeFilterSet(FilterSet[Any]):
+        class Meta:
+            constraints = [AgeConstraint()]
+
+    instance = get_filterset_instance(SomeFilterSet)
+
+    assert instance.handle_constraints({"age": 100}) == {
+        "non_field_errors": [
+            ErrorDetail(string="Age must not exceed 90.", code="age_limit"),
+            ErrorDetail(string="Choose a lower age.", code="lower_age"),
+        ],
+    }
+
+
+def test_constraints_merge_drf_and_django_validation_errors() -> None:
+    class MinimumAgeConstraint(Constraint):
+        def check(self, values: dict[str, Any]) -> None:
+            if values["age"] < 18:
+                raise serializers.ValidationError(
+                    "Age must be at least 18.",
+                    code="minimum_age",
+                )
+
+    class EvenAgeConstraint(Constraint):
+        def check(self, values: dict[str, Any]) -> None:
+            if values["age"] % 2:
+                raise DjangoValidationError(
+                    "Age must be even.",
+                    code="even_age",
+                )
+
+    class SomeFilterSet(FilterSet[Any]):
+        age = Filter(serializers.IntegerField())
+
+        class Meta:
+            constraints = [MinimumAgeConstraint(), EvenAgeConstraint()]
+
+    instance = get_filterset_instance(SomeFilterSet, query="age=17")
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+
+    assert ctx.value.detail == {
+        "non_field_errors": [
+            ErrorDetail(string="Age must be at least 18.", code="minimum_age"),
+            ErrorDetail(string="Age must be even.", code="even_age"),
+        ],
+    }
 
 
 def test_method_constraint_with_outside_filterset_context() -> None:
