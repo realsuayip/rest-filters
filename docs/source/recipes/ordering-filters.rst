@@ -43,7 +43,7 @@ Here is an implementation of a typical ordering field:
         def get_queryset(
             self,
             queryset: QuerySet[User],
-            values: dict[str, Any],
+            values: Mapping[str, Any],
         ) -> QuerySet[User]:
             queryset = super().get_queryset(queryset, values)
             return queryset.order_by(*values["ordering"])
@@ -95,7 +95,7 @@ for example:
         def get_queryset(
             self,
             queryset: QuerySet[User],
-            values: dict[str, Any],
+            values: Mapping[str, Any],
         ) -> QuerySet[User]:
             queryset = super().get_queryset(queryset, values)
             order_by = []

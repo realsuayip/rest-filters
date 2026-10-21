@@ -1,5 +1,6 @@
 import datetime
 import zoneinfo
+from collections.abc import Mapping
 from typing import Any
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -52,9 +53,30 @@ def test_handle_constraints() -> None:
     assert errors2 == {}
 
 
+def test_constraints_cannot_replace_parsed_values() -> None:
+    class ReadOnlyConstraint(Constraint):
+        def check(self, values: Mapping[str, Any]) -> None:
+            with pytest.raises(TypeError):
+                values["age"] = 99  # type: ignore[index]
+
+    class SomeFilterSet(FilterSet[Any]):
+        age = Filter(serializers.IntegerField())
+
+        class Meta:
+            constraints = [ReadOnlyConstraint()]
+
+    instance = get_filterset_instance(SomeFilterSet, query="age=12")
+    groups, values = instance.get_groups()
+
+    assert values == {"age": 12}
+    assert groups["chain"]["age"].value == 12
+    with pytest.raises(TypeError):
+        values["age"] = 99  # type: ignore[index]
+
+
 def test_handle_constraints_sets_filterset_instance() -> None:
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] < self.filterset.get_magic_value():  # type: ignore[union-attr]
                 raise serializers.ValidationError(
                     {
@@ -86,7 +108,7 @@ def test_handle_constraints_sets_filterset_instance() -> None:
 
 def test_handle_constraints_case_custom_message() -> None:
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] == 1:
                 raise serializers.ValidationError("something went wrong")
             if values["age"] == 2:
@@ -133,7 +155,7 @@ def test_method_constraint() -> None:
                 MethodConstraint(method="check_age_constraint"),
             ]
 
-        def check_age_constraint(self, values: dict[str, Any]) -> None:
+        def check_age_constraint(self, values: Mapping[str, Any]) -> None:
             if values["age"] < 10:
                 raise serializers.ValidationError("Age must be greater than 10")
 
@@ -153,7 +175,7 @@ def test_method_constraint_handles_django_validation_error() -> None:
                 MethodConstraint(method="check_age"),
             ]
 
-        def check_age(self, values: dict[str, Any]) -> None:
+        def check_age(self, values: Mapping[str, Any]) -> None:
             MaxValueValidator(90)(values["age"])
 
     instance = get_filterset_instance(SomeFilterSet, query="age=100")
@@ -173,7 +195,7 @@ def test_method_constraint_handles_django_validation_error() -> None:
 
 def test_custom_constraint_handles_django_validation_error() -> None:
     class AgeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] > 90:
                 raise DjangoValidationError(
                     {
@@ -207,7 +229,7 @@ def test_custom_constraint_handles_django_validation_error() -> None:
 
 def test_custom_constraint_wraps_django_error_list() -> None:
     class AgeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] > 90:
                 raise DjangoValidationError(
                     [
@@ -238,7 +260,7 @@ def test_custom_constraint_wraps_django_error_list() -> None:
 
 def test_constraints_merge_drf_and_django_validation_errors() -> None:
     class MinimumAgeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] < 18:
                 raise serializers.ValidationError(
                     "Age must be at least 18.",
@@ -246,7 +268,7 @@ def test_constraints_merge_drf_and_django_validation_errors() -> None:
                 )
 
     class EvenAgeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             if values["age"] % 2:
                 raise DjangoValidationError(
                     "Age must be even.",
@@ -463,7 +485,7 @@ def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> No
     # 3. If a field appear in query parameter, and has no field level
     # validation error, it should appear as serialized in values.
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             with pytest.raises(KeyError):
                 values["first_name"]
             with pytest.raises(KeyError):
@@ -505,7 +527,7 @@ def test_constraint_gives_access_to_all_fields() -> None:
     }
 
     class MyConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             assert values == expected
 
     class SomeFilterSet(FilterSet[Any]):

@@ -6,6 +6,7 @@ import itertools
 import operator
 from collections import defaultdict
 from difflib import get_close_matches
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, ClassVar, TypeAlias, final
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -26,7 +27,7 @@ from rest_filters.utils import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     from django.http import QueryDict
 
@@ -263,7 +264,7 @@ class BaseFilterSet:
             )
         return ret
 
-    def get_groups(self) -> tuple[Groups, dict[str, Any]]:
+    def get_groups(self) -> tuple[Groups, Mapping[str, Any]]:
         params, fields, known_parameters = (
             self.get_query_params(),
             self.get_fields(),
@@ -285,7 +286,8 @@ class BaseFilterSet:
             for param, error in errors.items():
                 errordict[param] = error
                 valuedict[param] = empty
-        merge_errors(errordict, self.handle_constraints(valuedict))
+        values = MappingProxyType(valuedict)
+        merge_errors(errordict, self.handle_constraints(values))
         if self._options.handle_unknown_parameters:
             unknown = [field for field in params if field not in known_parameters]
             if unknown:
@@ -294,7 +296,7 @@ class BaseFilterSet:
                 )
         if errordict:
             self.handle_errors(errordict)
-        return dict(groupdict), valuedict
+        return dict(groupdict), values
 
     def _resolve_group_namespace(
         self,
@@ -469,7 +471,7 @@ class BaseFilterSet:
         """
         return self._constraints
 
-    def handle_constraints(self, valuedict: dict[str, Any]) -> dict[str, Any]:
+    def handle_constraints(self, valuedict: Mapping[str, Any]) -> dict[str, Any]:
         errors: dict[str, Any] = {}
         constraints = self.get_constraints()
         for constraint in constraints:

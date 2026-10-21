@@ -7,6 +7,8 @@ from rest_filters.filtersets.base import BaseFilterSet
 from rest_filters.utils import _MT_co
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from django.db.models import QuerySet
     from django.http import QueryDict
 
@@ -85,7 +87,7 @@ class FilterSet(BaseFilterSet, Generic[_MT_co]):
     def get_queryset(
         self,
         queryset: QuerySet[_MT_co],
-        values: dict[str, Any],
+        values: Mapping[str, Any],
     ) -> QuerySet[_MT_co]:
         """
         Returns the final QuerySet object. At this point, all the filters are

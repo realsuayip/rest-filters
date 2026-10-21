@@ -108,7 +108,7 @@ For example:
                 ),
             ]
 
-        def ensure_valid_date_range(self, values: dict[str, Any]) -> None:
+        def ensure_valid_date_range(self, values: Mapping[str, Any]) -> None:
             start, end = (
                 values.get("start_date", empty),
                 values.get("end_date", empty),
@@ -157,7 +157,7 @@ Here is the range example above, created as custom constraint:
 
 
     class RangeConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             start, end = (
                 values.get("start_date", empty),
                 values.get("end_date", empty),

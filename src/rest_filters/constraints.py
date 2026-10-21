@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.settings import api_settings
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     from django.utils.functional import _StrOrPromise as StrOrPromise
 
@@ -39,14 +39,14 @@ class Constraint(ABC):
         self._message = message
         self.filterset: BaseFilterSet | None = None
 
-    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def get_message(self, values: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
         message = self._message or gettext(
             "Request failed to meet constraint: %(constraint)s"
         ) % {"constraint": self.__class__.__name__}
         return {api_settings.NON_FIELD_ERRORS_KEY: [message]}
 
     @abstractmethod
-    def check(self, values: dict[str, Any]) -> None:
+    def check(self, values: Mapping[str, Any]) -> None:
         raise NotImplementedError
 
 
@@ -59,7 +59,7 @@ class MethodConstraint(Constraint):
         self.method = method
         super().__init__()
 
-    def check(self, values: dict[str, Any]) -> None:
+    def check(self, values: Mapping[str, Any]) -> None:
         if self.filterset is None:
             raise AttributeError("Missing filterset for constraint")
         getattr(self.filterset, self.method)(values)
@@ -77,7 +77,7 @@ class MutuallyExclusive(Constraint):
         self.fields = fields
         super().__init__(message=message)
 
-    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def get_message(self, values: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
             return super().get_message(values, **kwargs)
         return {
@@ -94,7 +94,7 @@ class MutuallyExclusive(Constraint):
             ]
         }
 
-    def check(self, values: dict[str, Any]) -> None:
+    def check(self, values: Mapping[str, Any]) -> None:
         if sum(field in values for field in self.fields) > 1:
             raise serializers.ValidationError(self.get_message(values))
 
@@ -111,7 +111,7 @@ class MutuallyInclusive(Constraint):
         self.fields = fields
         super().__init__(message=message)
 
-    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def get_message(self, values: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
             return super().get_message(values, **kwargs)
         return {
@@ -124,7 +124,7 @@ class MutuallyInclusive(Constraint):
             ]
         }
 
-    def check(self, values: dict[str, Any]) -> None:
+    def check(self, values: Mapping[str, Any]) -> None:
         fields = [field in values for field in self.fields]
         if any(fields) and not all(fields):
             raise serializers.ValidationError(self.get_message(values))
@@ -142,7 +142,7 @@ class Dependency(Constraint):
         self.depends_on = depends_on
         super().__init__(message=message)
 
-    def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def get_message(self, values: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
             return super().get_message(values, **kwargs)
         missing = kwargs["missing"]
@@ -160,7 +160,7 @@ class Dependency(Constraint):
             ]
         return message
 
-    def check(self, values: dict[str, Any]) -> None:
+    def check(self, values: Mapping[str, Any]) -> None:
         missing = defaultdict(list)
         for field in self.fields:
             for dependency in self.depends_on:

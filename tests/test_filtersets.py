@@ -1,6 +1,6 @@
 import datetime
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from django.db.models import F, Q, Value
@@ -1809,7 +1809,7 @@ def test_get_groups_all_errors_are_merged_custom_unknown_parameter_impl() -> Non
 
 def test_get_groups_all_errors_are_merged_custom_constraint_impl() -> None:
     class CustomConstraint(Constraint):
-        def check(self, values: dict[str, Any]) -> None:
+        def check(self, values: Mapping[str, Any]) -> None:
             raise serializers.ValidationError({"first_name": ["Constraint failed"]})
 
     class SomeFilterSet(FilterSet[Any]):
