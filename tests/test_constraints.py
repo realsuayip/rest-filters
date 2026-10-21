@@ -474,6 +474,17 @@ def test_mutual_constraint_case_bad_args(
     ):
         klass(fields=["a"])
 
+    with pytest.raises(ValueError, match="unique field names"):
+        klass(fields=["a", "b", "a"])
+
+
+def test_dependency_rejects_duplicate_field_names() -> None:
+    with pytest.raises(ValueError, match="unique field names"):
+        Dependency(fields=["a", "a"], depends_on=["b"])
+
+    with pytest.raises(ValueError, match="unique field names"):
+        Dependency(fields=["a"], depends_on=["b", "b"])
+
 
 def test_constraint_values_missing_fields_and_unresolved_fields_behavior() -> None:
     # 1. If a field does not appear in query parameters, accessing it in values

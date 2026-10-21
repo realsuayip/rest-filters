@@ -74,6 +74,8 @@ class MutuallyExclusive(Constraint):
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
+        if len(fields) != len(set(fields)):
+            raise ValueError("'fields' must contain unique field names")
         self.fields = fields
         super().__init__(message=message)
 
@@ -108,6 +110,8 @@ class MutuallyInclusive(Constraint):
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
+        if len(fields) != len(set(fields)):
+            raise ValueError("'fields' must contain unique field names")
         self.fields = fields
         super().__init__(message=message)
 
@@ -138,6 +142,9 @@ class Dependency(Constraint):
         fields: Sequence[str],
         depends_on: Sequence[str],
     ) -> None:
+        for name, names in (("fields", fields), ("depends_on", depends_on)):
+            if len(names) != len(set(names)):
+                raise ValueError(f"'{name}' must contain unique field names")
         self.fields = fields
         self.depends_on = depends_on
         super().__init__(message=message)
