@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.settings import api_settings
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Mapping
 
     from django.utils.functional import _StrOrPromise as StrOrPromise
 
@@ -70,7 +70,7 @@ class MutuallyExclusive(Constraint):
         self,
         *,
         message: StrOrPromise = "",
-        fields: Sequence[str],
+        fields: list[str] | tuple[str, ...],
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
@@ -106,7 +106,7 @@ class MutuallyInclusive(Constraint):
         self,
         *,
         message: StrOrPromise = "",
-        fields: Sequence[str],
+        fields: list[str] | tuple[str, ...],
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
@@ -139,8 +139,8 @@ class Dependency(Constraint):
         self,
         *,
         message: StrOrPromise = "",
-        fields: Sequence[str],
-        depends_on: Sequence[str],
+        fields: list[str] | tuple[str, ...],
+        depends_on: list[str] | tuple[str, ...],
     ) -> None:
         for name, names in (("fields", fields), ("depends_on", depends_on)):
             if len(names) != len(set(names)):
