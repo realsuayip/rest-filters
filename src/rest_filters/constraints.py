@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
@@ -29,15 +30,13 @@ __all__ = [
 ]
 
 
-class Constraint:
+class Constraint(ABC):
     def __init__(
         self,
         *,
         message: StrOrPromise = "",
-        **kwargs: Any,
     ) -> None:
         self._message = message
-        self.kwargs = kwargs
         self.filterset: BaseFilterSet | None = None
 
     def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
@@ -46,6 +45,7 @@ class Constraint:
         ) % {"constraint": self.__class__.__name__}
         return {api_settings.NON_FIELD_ERRORS_KEY: [message]}
 
+    @abstractmethod
     def check(self, values: dict[str, Any]) -> None:
         raise NotImplementedError
 
@@ -54,12 +54,10 @@ class MethodConstraint(Constraint):
     def __init__(
         self,
         *,
-        message: StrOrPromise = "",
         method: str,
-        **kwargs: Any,
     ) -> None:
         self.method = method
-        super().__init__(message=message, **kwargs)
+        super().__init__()
 
     def check(self, values: dict[str, Any]) -> None:
         if self.filterset is None:
@@ -73,12 +71,11 @@ class MutuallyExclusive(Constraint):
         *,
         message: StrOrPromise = "",
         fields: Sequence[str],
-        **kwargs: Any,
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
         self.fields = fields
-        super().__init__(message=message, **kwargs)
+        super().__init__(message=message)
 
     def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
@@ -108,12 +105,11 @@ class MutuallyInclusive(Constraint):
         *,
         message: StrOrPromise = "",
         fields: Sequence[str],
-        **kwargs: Any,
     ) -> None:
         if len(fields) <= 1:
             raise ValueError("Provide 2 or more fields for this constraint")
         self.fields = fields
-        super().__init__(message=message, **kwargs)
+        super().__init__(message=message)
 
     def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
@@ -141,11 +137,10 @@ class Dependency(Constraint):
         message: StrOrPromise = "",
         fields: Sequence[str],
         depends_on: Sequence[str],
-        **kwargs: Any,
     ) -> None:
         self.fields = fields
         self.depends_on = depends_on
-        super().__init__(message=message, **kwargs)
+        super().__init__(message=message)
 
     def get_message(self, values: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if self._message:
