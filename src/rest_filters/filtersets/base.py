@@ -440,6 +440,9 @@ class BaseFilterSet:
         """
         return serializer  # type: ignore[return-value]
 
+    def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+        return aliases
+
     def get_serializer_context(self, param: str) -> dict[str, Any]:
         return {"filterset": self}
 

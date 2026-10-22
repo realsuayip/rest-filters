@@ -3,7 +3,7 @@ from typing import Any, ClassVar, TypeVar, cast
 from unittest.mock import MagicMock, call
 
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F, Q, Value
 from django.db.models.functions import Length
 from django.http import QueryDict
 from django.test.utils import isolate_apps
@@ -1321,21 +1321,36 @@ def test_filter_resolve_entry_attrs(f: Filter, entry: Entry) -> None:
         pass
 
     filterset = get_filterset_instance(SomeFilterSet)
+    f.name = "username"
     f._filterset = filterset
     assert f.resolve_entry_attrs("value") == entry
 
 
 def test_filter_resolve_entry_attrs_reserved_q_argument_names() -> None:
-    connector = Filter(field="_connector", group="chain")
+    class SomeFilterSet(FilterSet[Any]):
+        pass
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    connector = Filter(field="_connector", param="_connector", group="chain")
+    connector._filterset = filterset
     entry = connector.resolve_entry_attrs("AND")
     assert entry.expression == Q(("_connector", "AND"))
 
-    negated = Filter(field="_negated", group="chain", negate=True)
+    negated = Filter(
+        field="_negated",
+        param="_negated",
+        group="chain",
+        negate=True,
+    )
+    negated._filterset = filterset
     entry = negated.resolve_entry_attrs(False)
     assert entry.expression == ~Q(("_negated", False))
 
 
 def test_filter_resolve_entry_attrs_child() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        pass
+
     f = Filter(
         group="user_group",
         param="username",
@@ -1347,6 +1362,7 @@ def test_filter_resolve_entry_attrs_child() -> None:
             )
         ],
     )
+    f._filterset = get_filterset_instance(SomeFilterSet)
     entry = f.children[0].resolve_entry_attrs(5)
     assert entry == Entry(
         group="user_group",
@@ -1354,6 +1370,250 @@ def test_filter_resolve_entry_attrs_child() -> None:
         aliases={"_default_alias_username.min_length": Length("username")},
         expression=Q(**{"_default_alias_username.min_length__gte": 5}),
     )
+
+
+def test_filter_child_inherits_aliases_for_its_field() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            namespace=True,
+            field="username_length",
+            aliases={"username_length": Length("username")},
+            children=[
+                Filter(lookup="gte"),
+            ],
+        )
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="length.gte=5",
+    )
+    queryset = filterset.filter_queryset()
+    assert str(queryset.query).split(" WHERE ", 1)[1] == (
+        'LENGTH("testapp_user"."username") >= 5'
+    )
+
+
+def test_filter_aliases_include_all_ancestors() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            aliases={"parent_only": Value(1)},
+            namespace=True,
+            children=[
+                Filter(
+                    param="username",
+                    namespace=True,
+                    aliases={"middle_only": Value(2)},
+                    children=[
+                        Filter(
+                            lookup="gte",
+                            aliases={"child_only": Value(3)},
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="length.username.gte=5",
+    )
+    groups, _ = filterset.get_groups()
+    entry = groups["chain"]["length.username.gte"]
+    assert entry.aliases == {
+        "parent_only": Value(1),
+        "middle_only": Value(2),
+        "child_only": Value(3),
+    }
+
+
+def test_filter_child_alias_overrides_parent_alias() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            aliases={"shared": Value("parent")},
+            namespace=True,
+            children=[
+                Filter(
+                    lookup="gte",
+                    aliases={"shared": Value("child")},
+                ),
+            ],
+        )
+
+    filterset = get_filterset_instance(SomeFilterSet, query="length.gte=5")
+    groups, _ = filterset.get_groups()
+    entry = groups["chain"]["length.gte"]
+    assert entry.aliases == {"shared": Value("child")}
+
+
+def test_filter_parent_alias_hook_changes_do_not_leak_to_children() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            field="name_length",
+            aliases={"name_length": Length("username")},
+            children=[
+                Filter(lookup="gte"),
+            ],
+        )
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            if param == "length":
+                aliases["name_length"] = Length("first_name")
+            return aliases
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="length=5&length.gte=3",
+    )
+    queryset = filterset.filter_queryset()
+    assert str(queryset.query).split(" WHERE ", 1)[1] == (
+        '(LENGTH("testapp_user"."first_name") = 5 '
+        'AND LENGTH("testapp_user"."username") >= 3)'
+    )
+
+
+def test_filter_expression_alias_is_added_after_alias_hook() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(serializers.IntegerField(), field=Length("username"))
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            assert aliases == {}
+            return {"hook_only": Value(1)}
+
+    filterset = get_filterset_instance(SomeFilterSet, query="length=5")
+    groups, _ = filterset.get_groups()
+    entry = groups["chain"]["length"]
+    assert entry.aliases == {
+        "hook_only": Value(1),
+        "_default_alias_length": Length("username"),
+    }
+
+
+def test_filter_alias_hook_skips_missing_and_noop_filters() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+        role = Filter(serializers.CharField())
+        ordering = Filter(serializers.CharField(), noop=True)
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=alice&ordering=username",
+    )
+    filterset.get_aliases = MagicMock(return_value={})  # type: ignore[method-assign]
+    filterset.get_groups()
+    filterset.get_aliases.assert_called_once_with("username", {})
+
+
+def test_filter_alias_hook_runs_only_for_current_parameter() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            aliases={"username_length": Length("username")},
+            children=[
+                Filter(lookup="gte"),
+            ],
+        )
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            aliases["minimum_length"] = Value(3)
+            return aliases
+
+    filterset = get_filterset_instance(SomeFilterSet)
+    filterset.get_aliases = MagicMock(side_effect=filterset.get_aliases)  # type: ignore[method-assign]
+    parent = filterset.get_fields()["length"]
+    child = parent.children[0]
+    parent._filterset = filterset
+
+    expected = {
+        "username_length": Length("username"),
+        "minimum_length": Value(3),
+    }
+    assert child._get_aliases() == expected
+    filterset.get_aliases.assert_called_once_with("length.gte", expected)
+    assert parent._get_aliases() == expected
+    assert filterset.get_aliases.call_args_list == [
+        call("length.gte", expected),
+        call("length", expected),
+    ]
+
+
+def test_filter_aliases_can_be_replaced_or_discarded() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(
+            serializers.CharField(),
+            aliases={"original": Value(1)},
+        )
+        role = Filter(
+            serializers.CharField(),
+            aliases={"original": Value(2)},
+        )
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            if param == "username":
+                return {"replacement": Value(3)}
+            return {}
+
+    filterset = get_filterset_instance(
+        SomeFilterSet,
+        query="username=alice&role=admin",
+    )
+    groups, _ = filterset.get_groups()
+    username_entry = groups["chain"]["username"]
+    role_entry = groups["chain"]["role"]
+
+    assert username_entry.aliases == {"replacement": Value(3)}
+    assert role_entry.aliases is None
+
+
+def test_filter_method_uses_declared_and_filterset_aliases() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(
+            serializers.IntegerField(),
+            aliases={"username_length": Length("username")},
+            method="filter_length",
+        )
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            aliases["minimum_length"] = Value(3)
+            return aliases
+
+        def filter_length(self, param: str, value: int) -> Q:
+            return Q(username_length__gte=F("minimum_length") + value)
+
+    filterset = get_filterset_instance(SomeFilterSet, query="length=5")
+    queryset = filterset.filter_queryset()
+
+    assert str(queryset.query).split(" WHERE ", 1)[1] == (
+        'LENGTH("testapp_user"."username") >= (3 + 5)'
+    )
+
+
+def test_filter_method_entry_is_returned_unchanged() -> None:
+    result = Entry(
+        group="chain",
+        aliases={"username_length": Length("username")},
+        value=5,
+        expression=Q(username_length__gte=5),
+    )
+
+    class SomeFilterSet(FilterSet[Any]):
+        length = Filter(serializers.IntegerField(), method="filter_length")
+
+        def get_aliases(self, param: str, aliases: dict[str, Any]) -> dict[str, Any]:
+            return {}
+
+        def filter_length(self, param: str, value: int) -> Entry:
+            return result
+
+    filterset = get_filterset_instance(SomeFilterSet, query="length=5")
+    groups, _ = filterset.get_groups()
+    entry = groups["chain"]["length"]
+
+    assert entry is result
+    assert result.aliases == {"username_length": Length("username")}
 
 
 def test_filter_resolve_entry() -> None:

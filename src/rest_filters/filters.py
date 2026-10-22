@@ -279,6 +279,15 @@ class Filter:
             return self.parent.get_db_field()
         return self._field or self.name
 
+    def _get_aliases(self) -> dict[str, Any]:
+        aliases: dict[str, Any] = {}
+        current: Filter | None = self
+        while current is not None:
+            aliases = (current.aliases or {}) | aliases
+            current = current.parent
+        param, filterset = self.get_param_name(), self.get_filterset()
+        return filterset.get_aliases(param, aliases)
+
     def get_param_name(self) -> str:
         name = self._param or getattr(self, "name", None)
         if name is None:
@@ -381,6 +390,7 @@ class Filter:
         return self.run_validation(p, serializer)
 
     def resolve_entry_attrs(self, value: Any) -> Entry:
+        aliases = self._get_aliases()
         if self.template is not None:
             template = ~self.template if self.negate else self.template
             expression = fill_q_template(template, value=value)
@@ -388,17 +398,14 @@ class Filter:
             lhs = self.get_db_field()
             if isinstance(lhs, (BaseExpression, Combinable)):
                 alias = "_default_alias_%s" % self.get_param_name()
-                if self.aliases is not None:
-                    self.aliases[alias] = lhs
-                else:
-                    self.aliases = {alias: lhs}
+                aliases = aliases | {alias: lhs}
                 lhs = alias
             if self.lookup:
                 lhs = f"{lhs}__{self.lookup}"
             expression = Q((lhs, value), _negated=self.negate)
         return Entry(
             group=self.get_group(),
-            aliases=self.aliases,
+            aliases=aliases or None,
             value=value,
             expression=expression,
         )
@@ -416,7 +423,12 @@ class Filter:
             result = getattr(self.get_filterset(), self.method)(param, value)
             if isinstance(result, Entry):
                 return result
-            return Entry(group=self.get_group(), value=value, expression=result)
+            return Entry(
+                group=self.get_group(),
+                aliases=self._get_aliases() or None,
+                value=value,
+                expression=result,
+            )
         return self.resolve_entry_attrs(value)
 
     def get_all_children(self) -> list[Filter]:
