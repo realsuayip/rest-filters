@@ -395,7 +395,7 @@ class Filter:
                 lhs = alias
             if self.lookup:
                 lhs = f"{lhs}__{self.lookup}"
-            expression = Q(**{lhs: value}, _negated=self.negate)
+            expression = Q((lhs, value), _negated=self.negate)
         return Entry(
             group=self.get_group(),
             aliases=self.aliases,

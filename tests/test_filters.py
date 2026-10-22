@@ -1325,6 +1325,16 @@ def test_filter_resolve_entry_attrs(f: Filter, entry: Entry) -> None:
     assert f.resolve_entry_attrs("value") == entry
 
 
+def test_filter_resolve_entry_attrs_reserved_q_argument_names() -> None:
+    connector = Filter(field="_connector", group="chain")
+    entry = connector.resolve_entry_attrs("AND")
+    assert entry.expression == Q(("_connector", "AND"))
+
+    negated = Filter(field="_negated", group="chain", negate=True)
+    entry = negated.resolve_entry_attrs(False)
+    assert entry.expression == ~Q(("_negated", False))
+
+
 def test_filter_resolve_entry_attrs_child() -> None:
     f = Filter(
         group="user_group",
