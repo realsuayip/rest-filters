@@ -27,7 +27,7 @@ from rest_filters.utils import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable, Collection, Mapping, Sequence
 
     from django.http import QueryDict
 
@@ -268,7 +268,7 @@ class BaseFilterSet:
         params, fields, known_parameters = (
             self.get_query_params(),
             self.get_fields(),
-            self.get_known_parameters(),
+            set(self.get_known_parameters()),
         )
         groupdict: Groups
         groupdict, valuedict, errordict = defaultdict(dict), {}, {}
@@ -278,7 +278,7 @@ class BaseFilterSet:
                 entries, errors = field.resolve(params)
             finally:
                 field._filterset = None
-            known_parameters.extend((*entries, *errors))
+            known_parameters.update(entries, errors)
             for param, entry in entries.items():
                 if entry is not None:
                     groupdict[entry.group][param] = entry
@@ -292,7 +292,8 @@ class BaseFilterSet:
             unknown = [field for field in params if field not in known_parameters]
             if unknown:
                 merge_errors(
-                    errordict, self.handle_unknown_parameters(unknown, known_parameters)
+                    errordict,
+                    self.handle_unknown_parameters(unknown, sorted(known_parameters)),
                 )
         if errordict:
             self.handle_errors(errordict)
@@ -372,7 +373,7 @@ class BaseFilterSet:
         """
         raise NotImplementedError
 
-    def get_known_parameters(self) -> list[str]:
+    def get_known_parameters(self) -> Collection[str]:
         """
         Override this method extend or replace known parameters dynamically.
         """

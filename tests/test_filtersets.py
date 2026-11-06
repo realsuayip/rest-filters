@@ -1722,6 +1722,25 @@ def test_handle_unknown_parameters() -> None:
     }
 
 
+def test_unknown_parameter_suggestions_do_not_repeat_known_filters() -> None:
+    class SomeFilterSet(FilterSet[Any]):
+        username = Filter(serializers.CharField())
+
+        class Meta:
+            known_parameters = ["username"]
+
+    instance = get_filterset_instance(SomeFilterSet, query="usernme=alice")
+
+    with pytest.raises(serializers.ValidationError) as ctx:
+        instance.get_groups()
+
+    assert ctx.value.detail == {
+        "usernme": [
+            "This query parameter does not exist. Did you mean 'username'?",
+        ],
+    }
+
+
 def test_get_groups_all_errors_are_merged() -> None:
     class SomeFilterSet(FilterSet[Any]):
         username = Filter(serializers.CharField(), required=True)
