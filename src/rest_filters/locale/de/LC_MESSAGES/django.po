@@ -4,24 +4,19 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: şuayip üzülmez\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Project-Id-Version: rest-filters\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/rest_filters/constraints.py:45
+#: constraints.py:44
 #, python-format
 msgid "Request failed to meet constraint: %(constraint)s"
 msgstr "Die Anfrage erfüllt die Einschränkung nicht: %(constraint)s"
 
-#: src/rest_filters/constraints.py:87
+#: constraints.py:88
 #, python-format
 msgid ""
 "The following fields are mutually exclusive, you may only provide one of "
@@ -30,7 +25,7 @@ msgstr ""
 "Die folgenden Felder schließen sich gegenseitig aus; Sie dürfen nur eines "
 "davon angeben: %(fields)s"
 
-#: src/rest_filters/constraints.py:121
+#: constraints.py:124
 #, python-format
 msgid ""
 "The following fields are mutually inclusive, you must provide them all at "
@@ -39,7 +34,7 @@ msgstr ""
 "Die folgenden Felder sind gemeinsam erforderlich; Sie müssen sie entweder "
 "alle zusammen angeben oder keines: %(fields)s"
 
-#: src/rest_filters/constraints.py:155
+#: constraints.py:160
 #, python-format
 msgid ""
 "This query parameter also requires the following parameter to be present: "
@@ -54,16 +49,31 @@ msgstr[1] ""
 "Dieser Abfrageparameter erfordert außerdem, dass die folgenden Parameter "
 "vorhanden sind: %(params)s"
 
-#: src/rest_filters/filtersets.py:499
+#: fields.py:100
+msgid "Enter a valid CSV value."
+msgstr "Geben Sie einen gültigen CSV-Wert ein."
+
+#: fields.py:129 fields.py:165
+#, python-brace-format
+msgid "{input} is not a valid choice, available choices are: {choices}"
+msgstr ""
+"{input} ist keine gültige Auswahl. Verfügbare Auswahlmöglichkeiten: {choices}"
+
+#: filters.py:372
+msgid "This query parameter does not allow specifying multiple values."
+msgstr ""
+"Für diesen Abfrageparameter können nicht mehrere Werte angegeben werden."
+
+#: filtersets/base.py:512
 msgid "This query parameter does not exist."
 msgstr "Dieser Abfrageparameter existiert nicht."
 
-#: src/rest_filters/filtersets.py:503
+#: filtersets/base.py:516
 #, python-format
 msgid "This query parameter does not exist. Did you mean '%(param)s'?"
 msgstr "Dieser Abfrageparameter existiert nicht. Meinten Sie '%(param)s'?"
 
-#: src/rest_filters/filtersets.py:511
+#: filtersets/base.py:524
 #, python-format
 msgid ""
 "This query parameter does not exist. Did you mean one of these: "

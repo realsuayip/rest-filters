@@ -1,0 +1,85 @@
+# rest-filters Spanish translations
+# Copyright (C) 2026
+# This file is distributed under the same license as the rest-filters package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: rest-filters\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
+"1 : 2;\n"
+
+#: constraints.py:44
+#, python-format
+msgid "Request failed to meet constraint: %(constraint)s"
+msgstr "La solicitud no cumple la restricción: %(constraint)s"
+
+#: constraints.py:88
+#, python-format
+msgid ""
+"The following fields are mutually exclusive, you may only provide one of "
+"them: %(fields)s"
+msgstr ""
+"Los siguientes campos son mutuamente excluyentes; solo puede proporcionar "
+"uno de ellos: %(fields)s"
+
+#: constraints.py:124
+#, python-format
+msgid ""
+"The following fields are mutually inclusive, you must provide them all at "
+"once or none of them: %(fields)s"
+msgstr ""
+"Los siguientes campos deben proporcionarse juntos; debe proporcionarlos "
+"todos a la vez o ninguno: %(fields)s"
+
+#: constraints.py:160
+#, python-format
+msgid ""
+"This query parameter also requires the following parameter to be present: "
+"%(params)s"
+msgid_plural ""
+"This query parameter also requires the following parameters to be present: "
+"%(params)s"
+msgstr[0] ""
+"Este parámetro de consulta también requiere que esté presente el siguiente "
+"parámetro: %(params)s"
+msgstr[1] ""
+"Este parámetro de consulta también requiere que estén presentes los "
+"siguientes parámetros: %(params)s"
+msgstr[2] ""
+"Este parámetro de consulta también requiere que estén presentes los "
+"siguientes parámetros: %(params)s"
+
+#: fields.py:100
+msgid "Enter a valid CSV value."
+msgstr "Introduzca un valor CSV válido."
+
+#: fields.py:129 fields.py:165
+#, python-brace-format
+msgid "{input} is not a valid choice, available choices are: {choices}"
+msgstr "{input} no es una opción válida. Las opciones disponibles son: {choices}"
+
+#: filters.py:372
+msgid "This query parameter does not allow specifying multiple values."
+msgstr "Este parámetro de consulta no admite varios valores."
+
+#: filtersets/base.py:512
+msgid "This query parameter does not exist."
+msgstr "Este parámetro de consulta no existe."
+
+#: filtersets/base.py:516
+#, python-format
+msgid "This query parameter does not exist. Did you mean '%(param)s'?"
+msgstr "Este parámetro de consulta no existe. ¿Quiso decir '%(param)s'?"
+
+#: filtersets/base.py:524
+#, python-format
+msgid ""
+"This query parameter does not exist. Did you mean one of these: "
+"%(possibilities)s?"
+msgstr ""
+"Este parámetro de consulta no existe. ¿Quiso decir una de estas opciones: "
+"%(possibilities)s?"

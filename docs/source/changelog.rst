@@ -25,6 +25,7 @@ New features
   query parameter parsing and grouping without a QuerySet.
 - Added :py:meth:`FilterSet.get_schema_operation_parameters <rest_filters.filtersets.base.BaseFilterSet.get_schema_operation_parameters>`
   to customize schema generation.
+- Added Spanish translations.
 
 Changes
 
