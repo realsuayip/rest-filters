@@ -1,8 +1,8 @@
 Changelog
 =========
 
-0.8.0 (unreleased)
-------------------
+0.8.0
+-----
 
 New features
 
@@ -63,7 +63,7 @@ This release contains breaking changes:
 - Query parameter values are no longer normalized. Whitespace trimming now
   depend on the configured serializer field.
 
-`0.8.0 diff <https://github.com/realsuayip/rest-filters/compare/0.7.1...HEAD>`__.
+`0.8.0 diff <https://github.com/realsuayip/rest-filters/compare/0.7.1...0.8.0>`__.
 
 0.7.1
 -----
