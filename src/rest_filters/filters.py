@@ -15,7 +15,7 @@ from rest_framework.fields import SkipField, empty, get_error_detail
 
 from rest_filters.conf import Blank, Multi
 from rest_filters.fields import ListField
-from rest_filters.utils import AnyField, fill_q_template
+from rest_filters.utils import AnyField, fill_q_template, missing
 
 if TYPE_CHECKING:
     from django.http.request import QueryDict
@@ -26,7 +26,23 @@ if TYPE_CHECKING:
 __all__ = [
     "Entry",
     "Filter",
+    "always",
 ]
+
+
+class always:  # noqa: N801
+    """
+    Also call a filter method when its optional parameter has no resolved
+    value. The method receives :py:data:`~rest_filters.utils.missing` in that case.
+    Serializer defaults and validation still apply.
+
+    See :ref:`always-method-filters` for an example.
+    """
+
+    def __init__(self, method: str, /) -> None:
+        if not isinstance(method, str) or not method:
+            raise ValueError("always() requires a non-empty method name")
+        self.name = method
 
 
 class Entry:
@@ -93,7 +109,7 @@ class Filter:
         template: Q | None = None,
         group: str | None = None,
         negate: bool = False,
-        method: str | None = None,
+        method: str | always | None = None,
         aliases: dict[str, Any] | None = None,
         param: str | None = None,
         children: list[Filter] | None = None,
@@ -123,7 +139,8 @@ class Filter:
         :param negate: Set this to ``True`` to negate the resolved query
          expression.
         :param method: A method on the current FilterSet class that is going to
-         determine the query expression for this filter.
+         determine the query expression for this filter. Wrap its name with
+         :py:class:`~rest_filters.always` to also handle missing optional values.
         :param aliases: Additional expressions that are going to be added to
          the QuerySet.
         :param param: The name of this query parameter.
@@ -167,6 +184,11 @@ class Filter:
             raise ValueError(
                 "'method' and 'negate' cannot be used together. Negate the"
                 " expression in your method instead."
+            )
+        if noop is True and isinstance(method, always):
+            raise ValueError(
+                "always() cannot be combined with noop=True."
+                " Return None from the method instead."
             )
         if isinstance(f, serializers.ListField) and not isinstance(f, ListField):
             warnings.warn(
@@ -362,7 +384,7 @@ class Filter:
         filterset, param = self.get_filterset(), self.get_param_name()
         return filterset.run_validation(value, serializer, param)
 
-    def parse_value(self, value: list[str]) -> Any:
+    def parse_value(self, value: list[str]) -> Any:  # noqa: C901
         size = len(value)
         if not size:
             p: ParsedValue = empty
@@ -387,7 +409,12 @@ class Filter:
             elif p == "":
                 p = empty
         serializer = self.resolve_serializer()
-        return self.run_validation(p, serializer)
+        try:
+            return self.run_validation(p, serializer)
+        except SkipField:
+            if p is empty and isinstance(self.method, always) and not self.noop:
+                return missing
+            raise
 
     def resolve_entry_attrs(self, value: Any) -> Entry:
         aliases = self._get_aliases()
@@ -420,7 +447,10 @@ class Filter:
             return Entry(group=self.get_group(), value=value, expression=None)
         if self.method is not None:
             param = self.get_param_name()
-            result = getattr(self.get_filterset(), self.method)(param, value)
+            method = (
+                self.method.name if isinstance(self.method, always) else self.method
+            )
+            result = getattr(self.get_filterset(), method)(param, value)
             if isinstance(result, Entry):
                 return result
             return Entry(

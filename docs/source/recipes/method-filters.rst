@@ -92,8 +92,9 @@ return an ``Entry`` in following cases:
   ``FilterSet.get_queryset`` method will receive updated values.
 
 Returning ``None`` will not resolve a query expression, so no filtering will be
-done, mimicking the ``noop=True`` behavior. Methods are **not called** when the
-relevant query parameter is missing (and no default value is supplied).
+done, mimicking the ``noop=True`` behavior. By default, methods are **not
+called** when the relevant query parameter is missing (and no default value
+is supplied).
 
 .. note::
 
@@ -148,3 +149,45 @@ In this example ``is_starred`` parameter makes use of ``Exists`` expression,
 while ``needs_misuse_review`` parameter uses a method to do permission checks
 while also returning an ``Entry`` object to add aliases, forcing ``GROUP BY``
 and ``HAVING`` clauses on the SQL query.
+
+.. _always-method-filters:
+
+Running methods for missing parameters
+--------------------------------------
+
+Wrap a method name with :py:class:`~rest_filters.always` to also call it when
+an optional parameter has no value. The method receives
+:py:data:`~rest_filters.utils.missing` in that case. This lets you provide a default
+expression without defining a default serializer value:
+
+.. code-block:: python
+
+    from django.db.models import Q
+
+    from rest_filters import Filter, FilterSet, always
+    from rest_filters.fields import CSVField
+    from rest_filters.utils import Missing, missing
+
+
+    class ProjectFilterSet(FilterSet):
+        tenant_id = Filter(
+            CSVField(child=serializers.IntegerField(min_value=1)),
+            method=always("filter_tenant_id"),
+        )
+
+        def filter_tenant_id(self, param: str, value: list[int] | Missing) -> Q:
+            # By default, include projects from all authorized tenants.
+            # If IDs are supplied, narrow the results to those tenants.
+            tenant_ids = self.request.user.authorized_tenants
+            if value is not missing:
+                tenant_ids = [tenant_id for tenant_id in tenant_ids if tenant_id in value]
+            return Q(tenant_id__in=tenant_ids)
+
+Defaults and validation still apply. The method receives ``missing`` only when
+no value or default is available.
+
+.. note::
+
+    When using ``always()``, missing parameters remain absent from the values
+    passed to constraints and ``get_queryset()``. Return an ``Entry`` with a
+    resolved value to include them.
