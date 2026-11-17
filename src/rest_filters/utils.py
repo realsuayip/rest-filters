@@ -17,6 +17,9 @@ _MT_co = TypeVar("_MT_co", bound=models.Model, covariant=True)  # noqa: PYI018
 NotSet = enum.Enum("NotSet", "notset")
 notset: Final = NotSet.notset
 
+Missing = enum.Enum("Missing", "missing")
+missing: Final = Missing.missing
+
 if TYPE_CHECKING:
     from rest_framework.fields import _Empty
     from rest_framework.views import APIView

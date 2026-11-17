@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+New features
+
+- Added :py:class:`~rest_filters.always` for method filters that also run when
+  an optional query parameter is missing.
+
 0.8.0
 -----
 

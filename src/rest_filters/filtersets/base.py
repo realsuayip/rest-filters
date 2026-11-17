@@ -23,6 +23,7 @@ from rest_filters.utils import (
     NotSet,
     _get_filterset_schema,
     merge_errors,
+    missing,
     notset,
 )
 
@@ -282,7 +283,8 @@ class BaseFilterSet:
             for param, entry in entries.items():
                 if entry is not None:
                     groupdict[entry.group][param] = entry
-                    valuedict[param] = entry.value
+                    if entry.value is not missing:
+                        valuedict[param] = entry.value
             for param, error in errors.items():
                 errordict[param] = error
                 valuedict[param] = empty
